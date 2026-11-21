@@ -213,6 +213,29 @@ class EditorViewModelTest {
     }
 
     @Test
+    fun trashedNoteCanBeRestoredOrDeletedForever() = runTest(dispatcher) {
+        val restoreMe = notes.createNote("a", "1")
+        val deleteMe = notes.createNote("b", "2")
+        notes.moveToTrash(listOf(restoreMe, deleteMe))
+
+        val vm = editor(restoreMe)
+        settle()
+        vm.restoreFromTrash()
+        settle()
+        assertEquals(null, notes.getNote(restoreMe)!!.deletedAt)
+        close()
+        settle()
+
+        val vm2 = editor(deleteMe)
+        settle()
+        vm2.deleteForever()
+        settle()
+        close()
+        settle()
+        assertEquals(null, notes.getNote(deleteMe))
+    }
+
+    @Test
     fun deleteMovesToTrashAndOffersUndo() = runTest(dispatcher) {
         val id = notes.createNote("t", "c")
         val vm = editor(id)

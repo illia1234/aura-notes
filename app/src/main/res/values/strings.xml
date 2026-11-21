@@ -31,6 +31,18 @@
     <string name="note_trashed">Заметка в корзине</string>
     <string name="note_archived">Заметка в архиве</string>
     <string name="empty_note_discarded">Пустая заметка удалена</string>
+    <string name="note_unarchived">Заметка возвращена из архива</string>
+    <string name="note_restored">Заметка восстановлена</string>
+    <string name="note_deleted_forever">Заметка удалена навсегда</string>
+    <string name="unarchive">Вернуть из архива</string>
+    <string name="restore">Восстановить</string>
+    <string name="delete_forever">Удалить навсегда</string>
+    <string name="delete_forever_title">Удалить навсегда?</string>
+    <string name="trash_banner">Заметки удаляются навсегда через 30 дней</string>
+    <string name="trash_empty_action">Очистить</string>
+    <string name="trash_is_empty">Корзина пуста</string>
+    <string name="archive_is_empty">В архиве пусто</string>
+    <string name="trash_read_only">Заметка в корзине. Восстановите её, чтобы изменить.</string>
 
     <!-- Categories -->
     <string name="category">Категория</string>
@@ -85,7 +97,15 @@
     <string name="theme_dark">Тёмная</string>
     <string name="settings_dynamic_color">Динамические цвета</string>
     <string name="settings_dynamic_color_hint">Цвета из обоев (Android 12+)</string>
-    <string name="settings_not_saved_yet">Пока настройки сбрасываются после перезапуска. Сохранение появится на этапе 6.</string>
+    <string name="settings_list_layout">Вид списка</string>
+    <string name="layout_grid">Сетка</string>
+    <string name="layout_list">Список</string>
+    <string name="settings_text_size">Размер текста в редакторе</string>
+    <string name="text_size_small">Маленький</string>
+    <string name="text_size_medium">Средний</string>
+    <string name="text_size_large">Крупный</string>
+    <string name="settings_about">О приложении</string>
+    <string name="settings_version">Версия</string>
 
     <!-- Note colors -->
     <string name="color_default">Без цвета</string>
@@ -122,5 +142,35 @@
         <item quantity="few">%d заметки</item>
         <item quantity="many">%d заметок</item>
         <item quantity="other">%d заметки</item>
+    </plurals>
+    <plurals name="notes_unarchived">
+        <item quantity="one">%d заметка возвращена из архива</item>
+        <item quantity="few">%d заметки возвращены из архива</item>
+        <item quantity="many">%d заметок возвращены из архива</item>
+        <item quantity="other">%d заметки возвращены из архива</item>
+    </plurals>
+    <plurals name="notes_restored">
+        <item quantity="one">%d заметка восстановлена</item>
+        <item quantity="few">%d заметки восстановлены</item>
+        <item quantity="many">%d заметок восстановлены</item>
+        <item quantity="other">%d заметки восстановлены</item>
+    </plurals>
+    <plurals name="notes_deleted_forever">
+        <item quantity="one">%d заметка удалена навсегда</item>
+        <item quantity="few">%d заметки удалены навсегда</item>
+        <item quantity="many">%d заметок удалены навсегда</item>
+        <item quantity="other">%d заметки удалены навсегда</item>
+    </plurals>
+    <plurals name="confirm_delete_forever">
+        <item quantity="one">%d заметка будет удалена без возможности восстановления.</item>
+        <item quantity="few">%d заметки будут удалены без возможности восстановления.</item>
+        <item quantity="many">%d заметок будут удалены без возможности восстановления.</item>
+        <item quantity="other">%d заметки будут удалены без возможности восстановления.</item>
+    </plurals>
+    <plurals name="confirm_empty_trash">
+        <item quantity="one">Корзина будет очищена: %d заметка удалится без возможности восстановления.</item>
+        <item quantity="few">Корзина будет очищена: %d заметки удалятся без возможности восстановления.</item>
+        <item quantity="many">Корзина будет очищена: %d заметок удалятся без возможности восстановления.</item>
+        <item quantity="other">Корзина будет очищена: %d заметки удалятся без возможности восстановления.</item>
     </plurals>
 </resources>

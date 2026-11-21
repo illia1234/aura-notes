@@ -1,6 +1,13 @@
 package com.example.notebook.ui.screens.editor
 
 import android.content.ClipData
+import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.Unarchive
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.unit.sp
+import com.example.notebook.domain.EditorTextSize
+import com.example.notebook.ui.LocalAppSettings
+import com.example.notebook.ui.screens.bin.ConfirmDeleteDialog
 import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.text.style.TextOverflow
@@ -103,6 +110,8 @@ fun EditorScreen(
     var showCategorySheet by rememberSaveable { mutableStateOf(false) }
     var showNewCategory by rememberSaveable { mutableStateOf(false) }
     var showInfo by rememberSaveable { mutableStateOf(false) }
+    var showDeleteForever by rememberSaveable { mutableStateOf(false) }
+    val inTrash = storedNote?.isInTrash == true
 
     LaunchedEffect(viewModel) { viewModel.closeEvents.collect { onBack() } }
     // Spec: save when the app goes to the background, not only on exit. ON_PAUSE comes
@@ -125,16 +134,29 @@ fun EditorScreen(
                 navigationIcon = { BackButton(onBack) },
                 title = {},
                 actions = {
-                    EditorActions(
-                        isPinned = viewModel.isPinned,
-                        canShowInfo = storedNote != null,
-                        onTogglePin = viewModel::togglePinned,
-                        onArchive = viewModel::archive,
-                        onDelete = viewModel::moveToTrash,
-                        onInfo = { showInfo = true },
-                        title = viewModel.title,
-                        content = viewModel.content,
-                    )
+                    if (inTrash) {
+                        // Spec: a note from the trash is read-only, with a "Восстановить" button.
+                        TextButton(
+                            onClick = viewModel::restoreFromTrash,
+                            colors = ButtonDefaults.textButtonColors(contentColor = contentColor),
+                        ) { Text(stringResource(R.string.restore)) }
+                        IconButton(onClick = { showDeleteForever = true }) {
+                            Icon(Icons.Rounded.DeleteForever, contentDescription = stringResource(R.string.delete_forever))
+                        }
+                    } else {
+                        EditorActions(
+                            isPinned = viewModel.isPinned,
+                            isArchived = storedNote?.isArchived == true,
+                            canShowInfo = storedNote != null,
+                            onTogglePin = viewModel::togglePinned,
+                            onArchive = viewModel::archive,
+                            onUnarchive = viewModel::unarchive,
+                            onDelete = viewModel::moveToTrash,
+                            onInfo = { showInfo = true },
+                            title = viewModel.title,
+                            content = viewModel.content,
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
@@ -145,13 +167,22 @@ fun EditorScreen(
             )
         },
         bottomBar = {
-            EditorBottomBar(
-                updatedAt = storedNote?.updatedAt,
-                onColorClick = { showColorSheet = true },
-                categoryName = categories.firstOrNull { it.id == viewModel.categoryId }?.name,
-                onCategoryClick = { showCategorySheet = true },
-                modifier = Modifier.navigationBarsPadding().imePadding(),
-            )
+            if (inTrash) {
+                Text(
+                    text = stringResource(R.string.trash_read_only),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = contentColor.copy(alpha = 0.75f),
+                    modifier = Modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 16.dp),
+                )
+            } else {
+                EditorBottomBar(
+                    updatedAt = storedNote?.updatedAt,
+                    onColorClick = { showColorSheet = true },
+                    categoryName = categories.firstOrNull { it.id == viewModel.categoryId }?.name,
+                    onCategoryClick = { showCategorySheet = true },
+                    modifier = Modifier.navigationBarsPadding().imePadding(),
+                )
+            }
         },
     ) { padding ->
         if (viewModel.isLoaded) {
@@ -161,10 +192,23 @@ fun EditorScreen(
                 onTitleChange = viewModel::onTitleChange,
                 onContentChange = viewModel::onContentChange,
                 focusContentOnStart = viewModel.isNewNote && storedNote == null,
+                readOnly = inTrash,
+                textSize = LocalAppSettings.current.editorTextSize,
                 textColor = contentColor,
                 modifier = Modifier.padding(padding),
             )
         }
+    }
+
+    if (showDeleteForever) {
+        ConfirmDeleteDialog(
+            text = pluralStringResource(R.plurals.confirm_delete_forever, 1, 1),
+            onConfirm = {
+                showDeleteForever = false
+                viewModel.deleteForever()
+            },
+            onDismiss = { showDeleteForever = false },
+        )
     }
 
     if (showColorSheet) {
@@ -212,9 +256,11 @@ private fun NoteColor.editorBackground(): Color =
 @Composable
 private fun EditorActions(
     isPinned: Boolean,
+    isArchived: Boolean,
     canShowInfo: Boolean,
     onTogglePin: () -> Unit,
     onArchive: () -> Unit,
+    onUnarchive: () -> Unit,
     onDelete: () -> Unit,
     onInfo: () -> Unit,
     title: String,
@@ -229,8 +275,14 @@ private fun EditorActions(
             contentDescription = stringResource(if (isPinned) R.string.unpin else R.string.pin),
         )
     }
-    IconButton(onClick = onArchive) {
-        Icon(Icons.Rounded.Archive, contentDescription = stringResource(R.string.archive))
+    if (isArchived) {
+        IconButton(onClick = onUnarchive) {
+            Icon(Icons.Rounded.Unarchive, contentDescription = stringResource(R.string.unarchive))
+        }
+    } else {
+        IconButton(onClick = onArchive) {
+            Icon(Icons.Rounded.Archive, contentDescription = stringResource(R.string.archive))
+        }
     }
     Box {
         IconButton(onClick = { menuOpen = true }) {
@@ -266,6 +318,8 @@ private fun EditorFields(
     onTitleChange: (String) -> Unit,
     onContentChange: (String) -> Unit,
     focusContentOnStart: Boolean,
+    readOnly: Boolean,
+    textSize: EditorTextSize,
     textColor: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -275,7 +329,7 @@ private fun EditorFields(
     LaunchedEffect(Unit) { if (focusContentOnStart) contentFocus.requestFocus() }
 
     val titleStyle = MaterialTheme.typography.headlineSmall.copy(color = textColor)
-    val bodyStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor)
+    val bodyStyle = MaterialTheme.typography.bodyLarge.forSize(textSize).copy(color = textColor)
     val sentences = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
 
     // Title and text scroll together, like a sheet of paper.
@@ -294,6 +348,7 @@ private fun EditorFields(
             keyboardOptions = sentences.copy(imeAction = ImeAction.Next),
             keyboardActions = KeyboardActions(onNext = { contentFocus.requestFocus() }),
             singleLine = false,
+            readOnly = readOnly,
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         )
         PlainField(
@@ -305,6 +360,7 @@ private fun EditorFields(
             keyboardOptions = sentences,
             keyboardActions = KeyboardActions.Default,
             singleLine = false,
+            readOnly = readOnly,
             modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp).focusRequester(contentFocus),
         )
     }
@@ -321,6 +377,7 @@ private fun PlainField(
     keyboardOptions: KeyboardOptions,
     keyboardActions: KeyboardActions,
     singleLine: Boolean,
+    readOnly: Boolean,
     modifier: Modifier = Modifier,
 ) {
     BasicTextField(
@@ -331,6 +388,7 @@ private fun PlainField(
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         singleLine = singleLine,
+        readOnly = readOnly,
         modifier = modifier,
         decorationBox = { inner ->
             Box {
@@ -425,4 +483,11 @@ private fun shareText(context: Context, text: String) {
         putExtra(Intent.EXTRA_TEXT, text)
     }
     context.startActivity(Intent.createChooser(send, null))
+}
+
+/** Editor text size from Settings; Medium is the standard bodyLarge (16 sp). */
+private fun TextStyle.forSize(size: EditorTextSize): TextStyle = when (size) {
+    EditorTextSize.SMALL -> copy(fontSize = 14.sp, lineHeight = 20.sp)
+    EditorTextSize.MEDIUM -> this
+    EditorTextSize.LARGE -> copy(fontSize = 20.sp, lineHeight = 28.sp)
 }

@@ -12,6 +12,7 @@ import com.example.notebook.data.repository.SettingsRepository
 import com.example.notebook.domain.Category
 import com.example.notebook.domain.CategoryResult
 import com.example.notebook.domain.Note
+import com.example.notebook.domain.ListLayout
 import com.example.notebook.domain.NoteColor
 import com.example.notebook.domain.NoteSearch
 import com.example.notebook.domain.SortOrder
@@ -115,6 +116,10 @@ class NotesViewModel(
 
     fun onQueryChange(value: String) {
         query = value
+    }
+
+    fun setListLayout(layout: ListLayout) {
+        viewModelScope.launch { settings.setListLayout(layout) }
     }
 
     fun setSortOrder(order: SortOrder) {

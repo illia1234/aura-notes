@@ -106,6 +106,9 @@ import com.example.notebook.R
 import com.example.notebook.domain.NoteColor
 import com.example.notebook.ui.appContainer
 import com.example.notebook.ui.components.NoteCard
+import com.example.notebook.ui.LocalAppSettings
+import com.example.notebook.domain.ListLayout
+import com.example.notebook.ui.components.labelRes
 import com.example.notebook.ui.components.NoteColorSheet
 import kotlinx.coroutines.launch
 
@@ -133,8 +136,8 @@ fun NotesScreen(
     val resources = LocalContext.current.resources
     val haptics = LocalHapticFeedback.current
 
-    // Grid or list. Kept across rotation now; saved permanently in stage 6 (DataStore).
-    var isGrid by rememberSaveable { mutableStateOf(true) }
+    // Grid or list, saved in DataStore (Settings and the toggle in the search bar).
+    val isGrid = LocalAppSettings.current.listLayout == ListLayout.GRID
     var showColorSheet by rememberSaveable { mutableStateOf(false) }
     var showCategorySheet by rememberSaveable { mutableStateOf(false) }
     var showNewCategory by rememberSaveable { mutableStateOf(false) }
@@ -211,7 +214,7 @@ fun NotesScreen(
                             },
                             isGrid = isGrid,
                             onMenuClick = { scope.launch { drawerState.open() } },
-                            onToggleLayout = { isGrid = !isGrid },
+                            onToggleLayout = { viewModel.setListLayout(if (isGrid) ListLayout.LIST else ListLayout.GRID) },
                         ) {
                             SearchResults(search = search, onOpenNote = onOpenNote)
                         }
@@ -579,13 +582,6 @@ private fun SortButton(current: SortOrder, onSelect: (SortOrder) -> Unit) {
             }
         }
     }
-}
-
-private fun SortOrder.labelRes(): Int = when (this) {
-    SortOrder.UPDATED_NEWEST_FIRST -> R.string.sort_updated_newest
-    SortOrder.UPDATED_OLDEST_FIRST -> R.string.sort_updated_oldest
-    SortOrder.CREATED_NEWEST_FIRST -> R.string.sort_created_newest
-    SortOrder.CREATED_OLDEST_FIRST -> R.string.sort_created_oldest
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

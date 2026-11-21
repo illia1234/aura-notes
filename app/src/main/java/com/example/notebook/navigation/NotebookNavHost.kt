@@ -6,7 +6,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.notebook.domain.ThemeMode
 import com.example.notebook.ui.screens.bin.BinMode
 import com.example.notebook.ui.screens.bin.BinScreen
 import com.example.notebook.ui.screens.categories.CategoriesScreen
@@ -17,19 +16,14 @@ import com.example.notebook.ui.screens.settings.SettingsScreen
 
 /** All screens of the app live in one Activity; this graph switches between them. */
 @Composable
-fun NotebookNavHost(
-    themeMode: ThemeMode,
-    onThemeModeChange: (ThemeMode) -> Unit,
-    dynamicColor: Boolean,
-    onDynamicColorChange: (Boolean) -> Unit,
-    navController: NavHostController = rememberNavController(),
-) {
+fun NotebookNavHost(navController: NavHostController = rememberNavController()) {
+    val openNote: (Long) -> Unit = { id -> navController.navigate(EditorRoute(noteId = id)) { launchSingleTop = true } }
+
     NavHost(navController = navController, startDestination = NotesRoute) {
         composable<NotesRoute> {
-            // dropUnlessResumed ignores a second tap while a screen transition is running,
-            // so a quick double tap cannot open the editor twice.
+            // launchSingleTop: a quick double tap cannot open the editor twice.
             NotesScreen(
-                onOpenNote = { id -> navController.navigate(EditorRoute(noteId = id)) { launchSingleTop = true } },
+                onOpenNote = openNote,
                 onCreateNote = { categoryId -> navController.navigate(EditorRoute(categoryId = categoryId)) { launchSingleTop = true } },
                 onDrawerDestination = { destination ->
                     val route: Any = when (destination) {
@@ -42,23 +36,16 @@ fun NotebookNavHost(
                 },
             )
         }
-        // Each screen's "Back" pops only itself, and only once (double taps would pop the main screen too).
+        // Each screen's "Back" pops only itself, and only once: dropUnlessResumed ignores
+        // a second tap during the transition (it would pop the main screen too).
         composable<EditorRoute> { EditorScreen(onBack = dropUnlessResumed { navController.popBackStack() }) }
         composable<CategoriesRoute> { CategoriesScreen(onBack = dropUnlessResumed { navController.popBackStack() }) }
         composable<ArchiveRoute> {
-            BinScreen(mode = BinMode.Archive, onBack = dropUnlessResumed { navController.popBackStack() })
+            BinScreen(mode = BinMode.Archive, onOpenNote = openNote, onBack = dropUnlessResumed { navController.popBackStack() })
         }
         composable<TrashRoute> {
-            BinScreen(mode = BinMode.Trash, onBack = dropUnlessResumed { navController.popBackStack() })
+            BinScreen(mode = BinMode.Trash, onOpenNote = openNote, onBack = dropUnlessResumed { navController.popBackStack() })
         }
-        composable<SettingsRoute> {
-            SettingsScreen(
-                themeMode = themeMode,
-                onThemeModeChange = onThemeModeChange,
-                dynamicColor = dynamicColor,
-                onDynamicColorChange = onDynamicColorChange,
-                onBack = dropUnlessResumed { navController.popBackStack() },
-            )
-        }
+        composable<SettingsRoute> { SettingsScreen(onBack = dropUnlessResumed { navController.popBackStack() }) }
     }
 }

@@ -212,6 +212,30 @@ class EditorViewModel(
         )
     }
 
+    /** Archived note: back to the main screen. The editor stays open. */
+    fun unarchive() {
+        val id = noteId ?: return
+        appScope.launch { notes.unarchive(listOf(id)) }
+    }
+
+    /** Note from the trash: restore it; it becomes editable right away. */
+    fun restoreFromTrash() {
+        val id = noteId ?: return
+        appScope.launch { notes.restoreFromTrash(listOf(id)) }
+    }
+
+    /** Permanent deletion from the trash. The screen asks for confirmation first. */
+    fun deleteForever() {
+        val id = noteId ?: return
+        saveJob?.cancel()
+        finished = true
+        appScope.launch {
+            notes.deleteForever(listOf(id))
+            messenger.send(NoteMessages.deletedForever(1))
+            closeChannel.send(Unit)
+        }
+    }
+
     fun moveToTrash() = finishWith { id ->
         notes.moveToTrash(listOf(id))
         messenger.send(NoteMessages.trashed(1) { notes.restoreFromTrash(listOf(id)) })
