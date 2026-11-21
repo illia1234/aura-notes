@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -30,8 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.notebook.R
 import com.example.notebook.domain.NoteColor
-import com.example.notebook.ui.theme.containerColor
-import com.example.notebook.ui.theme.contentColor
+import com.example.notebook.ui.theme.accent
 
 /** Russian name of a note color, for TalkBack and labels. */
 fun NoteColor.labelRes(): Int = when (this) {
@@ -90,13 +90,13 @@ private fun ColorCircle(color: NoteColor, isSelected: Boolean, onClick: () -> Un
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .background(color.containerColor())
+            .background(color.accent())
             .then(if (outline != null) Modifier.border(outline, CircleShape) else Modifier)
             .selectable(selected = isSelected, role = Role.RadioButton, onClick = onClick)
             .semantics { contentDescription = name },
     ) {
         if (isSelected) {
-            Icon(Icons.Rounded.Check, contentDescription = null, tint = color.contentColor())
+            Icon(Icons.Rounded.Check, contentDescription = null, tint = Color(0xFF121212))
         }
     }
 }

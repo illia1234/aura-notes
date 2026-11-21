@@ -11,20 +11,17 @@ import com.example.notebook.data.backup.BackupException
 import com.example.notebook.data.backup.BackupRepository
 import com.example.notebook.data.repository.SettingsRepository
 import com.example.notebook.domain.EditorTextSize
-import com.example.notebook.domain.ListLayout
 import com.example.notebook.domain.SortOrder
-import com.example.notebook.domain.ThemeMode
 import com.example.notebook.ui.UserMessage
 import com.example.notebook.ui.UserMessenger
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * Writes settings and runs export / import. The screen reads current values from
+ * Writes settings and runs export / import (results appear in the app-wide snackbar). The screen reads current values from
  * LocalAppSettings, which MainActivity keeps in sync with DataStore.
  */
 class SettingsViewModel(
@@ -34,9 +31,6 @@ class SettingsViewModel(
     private val appScope: CoroutineScope,
 ) : ViewModel() {
 
-    fun setThemeMode(mode: ThemeMode) = save { settings.setThemeMode(mode) }
-    fun setDynamicColor(enabled: Boolean) = save { settings.setDynamicColor(enabled) }
-    fun setListLayout(layout: ListLayout) = save { settings.setListLayout(layout) }
     fun setSortOrder(order: SortOrder) = save { settings.setSortOrder(order) }
     fun setEditorTextSize(size: EditorTextSize) = save { settings.setEditorTextSize(size) }
 
@@ -48,7 +42,6 @@ class SettingsViewModel(
     var isBusy by mutableStateOf(false)
         private set
 
-    val messages: Flow<UserMessage> = messenger.messages
 
     /** Default file name in the save dialog, e.g. notebook-backup-2026-11-21.json (spec). */
     fun suggestedFileName(): String =

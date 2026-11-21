@@ -1,71 +1,64 @@
 package com.example.notebook.ui.theme
 
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 /*
- * Fallback color schemes with a blue-green (teal) accent.
- * They are used only when dynamic color is off or unavailable (Android < 12).
- * On a Pixel with dynamic color on, colors come from the wallpaper instead.
+ * Aura palette (docs/REDESIGN_AURA.md): a deep near-black background, translucent
+ * "glass" panels, white text, light-gray secondary text, soft neon accents.
+ * The app is dark-only, so there is a single color scheme.
  */
+object AuraColors {
+    val Background = Color(0xFF121212)
+    val TextPrimary = Color(0xFFFFFFFF)
+    val TextSecondary = Color(0xFFA0A0A0)
 
-internal val TealLightColorScheme = lightColorScheme(
-    primary = Color(0xFF006A6A),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFF9CF1F0),
-    onPrimaryContainer = Color(0xFF002020),
-    secondary = Color(0xFF4A6363),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFCCE8E7),
-    onSecondaryContainer = Color(0xFF051F1F),
-    tertiary = Color(0xFF4B607C),
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFD3E4FF),
-    onTertiaryContainer = Color(0xFF041C35),
-    background = Color(0xFFF4FBFA),
-    onBackground = Color(0xFF161D1D),
-    surface = Color(0xFFF4FBFA),
-    onSurface = Color(0xFF161D1D),
-    surfaceVariant = Color(0xFFDAE5E4),
-    onSurfaceVariant = Color(0xFF3F4948),
-    outline = Color(0xFF6F7979),
-    outlineVariant = Color(0xFFBEC9C8),
-    surfaceDim = Color(0xFFD5DBDA),
-    surfaceBright = Color(0xFFF4FBFA),
-    surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFEFF5F4),
-    surfaceContainer = Color(0xFFE9EFEE),
-    surfaceContainerHigh = Color(0xFFE3E9E8),
-    surfaceContainerHighest = Color(0xFFDEE4E3),
-)
+    /** Glass panel fill: a faint white veil over the background, lighter at the top. */
+    val GlassTop = Color.White.copy(alpha = 0.075f)
+    val GlassBottom = Color.White.copy(alpha = 0.035f)
 
-internal val TealDarkColorScheme = darkColorScheme(
-    primary = Color(0xFF80D5D4),
-    onPrimary = Color(0xFF003737),
-    primaryContainer = Color(0xFF004F4F),
-    onPrimaryContainer = Color(0xFF9CF1F0),
-    secondary = Color(0xFFB0CCCB),
-    onSecondary = Color(0xFF1B3534),
-    secondaryContainer = Color(0xFF324B4B),
-    onSecondaryContainer = Color(0xFFCCE8E7),
-    tertiary = Color(0xFFB3C8E8),
-    onTertiary = Color(0xFF1C314B),
-    tertiaryContainer = Color(0xFF334863),
-    onTertiaryContainer = Color(0xFFD3E4FF),
-    background = Color(0xFF0E1514),
-    onBackground = Color(0xFFDDE4E3),
-    surface = Color(0xFF0E1514),
-    onSurface = Color(0xFFDDE4E3),
-    surfaceVariant = Color(0xFF3F4948),
-    onSurfaceVariant = Color(0xFFBEC9C8),
-    outline = Color(0xFF889392),
-    outlineVariant = Color(0xFF3F4948),
-    surfaceDim = Color(0xFF0E1514),
-    surfaceBright = Color(0xFF343A3A),
-    surfaceContainerLowest = Color(0xFF090F0F),
-    surfaceContainerLow = Color(0xFF161D1D),
-    surfaceContainer = Color(0xFF1A2121),
-    surfaceContainerHigh = Color(0xFF252B2B),
-    surfaceContainerHighest = Color(0xFF303636),
+    /** Thin light rim around glass panels, brightest at the top-left. */
+    val RimBright = Color.White.copy(alpha = 0.20f)
+    val RimDim = Color.White.copy(alpha = 0.04f)
+
+    /** Tag "pill" background. */
+    val Pill = Color(0xFF2E2E2E)
+
+    /** Accent gradient of the main button (blue → violet). */
+    val AccentBlue = Color(0xFF5B7CFF)
+    val AccentViolet = Color(0xFF9B6BFF)
+}
+
+internal val AuraColorScheme = darkColorScheme(
+    primary = Color(0xFF9DAEFF),
+    onPrimary = Color(0xFF101433),
+    primaryContainer = Color(0xFF2B3160),
+    onPrimaryContainer = Color(0xFFDDE2FF),
+    secondary = Color(0xFFC4B5FD),
+    onSecondary = Color(0xFF241B3D),
+    secondaryContainer = Color(0xFF2C2C38),
+    onSecondaryContainer = Color(0xFFE8E6F5),
+    tertiary = Color(0xFF7CF5C8),
+    onTertiary = Color(0xFF00382A),
+    tertiaryContainer = Color(0xFF1F4A3E),
+    onTertiaryContainer = Color(0xFFB8FFE6),
+    background = AuraColors.Background,
+    onBackground = AuraColors.TextPrimary,
+    surface = AuraColors.Background,
+    onSurface = AuraColors.TextPrimary,
+    surfaceVariant = Color(0xFF262626),
+    onSurfaceVariant = AuraColors.TextSecondary,
+    outline = Color(0xFF4A4A4A),
+    outlineVariant = Color(0xFF2E2E2E),
+    surfaceDim = AuraColors.Background,
+    surfaceBright = Color(0xFF2E2E2E),
+    surfaceContainerLowest = Color(0xFF0D0D0D),
+    surfaceContainerLow = Color(0xFF181818),
+    surfaceContainer = Color(0xFF1C1C1C),
+    surfaceContainerHigh = Color(0xFF232323),
+    surfaceContainerHighest = Color(0xFF2A2A2A),
+    inverseSurface = Color(0xFFE6E6E6),
+    inverseOnSurface = Color(0xFF1C1C1C),
+    error = Color(0xFFFF8A8A),
+    onError = Color(0xFF3B0A0A),
 )

@@ -59,6 +59,9 @@ class EditorViewModel(
     /** True when the editor was opened with the FAB (the note did not exist before). */
     val isNewNote: Boolean = route.noteId == null
 
+    /** The note id the editor was opened with; links the editor to its card for the open/close animation. */
+    val openedNoteId: Long? = route.noteId
+
     // The id survives process death, so a new note that was already inserted is reloaded, not duplicated.
     private val noteIdFlow = MutableStateFlow(savedStateHandle.get<Long>(KEY_NOTE_ID) ?: route.noteId)
     private var noteId: Long?

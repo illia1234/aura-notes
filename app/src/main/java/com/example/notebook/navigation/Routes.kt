@@ -8,18 +8,23 @@ import kotlinx.serialization.Serializable
  * so the compiler checks them instead of hand-written "editor/{id}" strings.
  */
 
-@Serializable data object NotesRoute
+// The five tabs of the bottom bar (docs/REDESIGN_AURA.md).
+@Serializable data object HomeRoute
+
+@Serializable data object LabelsRoute
+
+@Serializable data object SearchRoute
+
+@Serializable data object FavoritesRoute
+
+@Serializable data object SettingsRoute
 
 /**
- * noteId == null means "create a new note"; [categoryId] then pre-selects its category
- * (used when creating a note while a category filter is active).
+ * noteId == null means "create a new note"; [categoryId] then pre-selects its tag
+ * (used when creating a note while a tag filter is active).
  */
 @Serializable data class EditorRoute(val noteId: Long? = null, val categoryId: Long? = null)
-
-@Serializable data object CategoriesRoute
 
 @Serializable data object ArchiveRoute
 
 @Serializable data object TrashRoute
-
-@Serializable data object SettingsRoute

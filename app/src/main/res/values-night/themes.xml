@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Dark window background before Compose draws, so a dark-theme launch does not flash white. -->
-    <style name="Theme.Notebook" parent="android:Theme.Material.NoActionBar" />
-</resources>

@@ -1,28 +1,32 @@
 <resources>
-    <string name="app_name">Notebook</string>
+    <string name="app_name">Aura</string>
 
-    <!-- Navigation drawer -->
-    <string name="nav_notes">Заметки</string>
-    <string name="nav_manage_categories">Управление категориями</string>
-    <string name="nav_archive">Архив</string>
-    <string name="nav_trash">Корзина</string>
-    <string name="nav_settings">Настройки</string>
+    <!-- Bottom tab bar -->
+    <string name="tab_home">Главная</string>
+    <string name="tab_labels">Метки</string>
+    <string name="tab_search">Поиск</string>
+    <string name="tab_favorites">Избранное</string>
+    <string name="tab_settings">Настройки</string>
 
     <!-- Main screen -->
+    <string name="title_notes">Заметки</string>
     <string name="search_hint">Поиск в заметках</string>
-    <string name="open_menu">Открыть меню</string>
-    <string name="show_as_list">Показать списком</string>
-    <string name="show_as_grid">Показать сеткой</string>
-    <string name="new_note">Заметка</string>
-    <string name="notes_pinned">Закреплённые</string>
+    <string name="new_note">Новая заметка</string>
+    <string name="notes_pinned">Избранные</string>
     <string name="notes_others">Другие</string>
     <string name="notes_empty">Заметок пока нет.\nНажмите «+», чтобы создать</string>
-    <string name="note_is_pinned">Закреплена</string>
+    <string name="favorites_empty">Здесь появятся избранные заметки.\nНажмите ♡ в заметке, чтобы добавить её сюда</string>
+    <string name="note_is_favorite">В избранном</string>
     <string name="selection_clear">Отменить выбор</string>
 
+    <!-- Archive and trash -->
+    <string name="nav_archive">Архив</string>
+    <string name="nav_trash">Корзина</string>
+    <string name="labels_storage">Хранилище</string>
+
     <!-- Note actions -->
-    <string name="pin">Закрепить</string>
-    <string name="unpin">Открепить</string>
+    <string name="pin">В избранное</string>
+    <string name="unpin">Убрать из избранного</string>
     <string name="archive">В архив</string>
     <string name="delete">Удалить</string>
     <string name="color">Цвет</string>
@@ -44,29 +48,28 @@
     <string name="archive_is_empty">В архиве пусто</string>
     <string name="trash_read_only">Заметка в корзине. Восстановите её, чтобы изменить.</string>
 
-    <!-- Categories -->
-    <string name="category">Категория</string>
-    <string name="category_none">Без категории</string>
-    <string name="category_new">Новая категория</string>
+    <!-- Tags (stored as "categories": one tag per note) -->
+    <string name="category">Метка</string>
+    <string name="category_none">Без метки</string>
+    <string name="category_new">Новая метка</string>
     <string name="category_name">Название</string>
     <string name="category_create">Создать</string>
     <string name="category_rename">Переименовать</string>
-    <string name="category_rename_title">Переименовать категорию</string>
+    <string name="category_rename_title">Переименовать метку</string>
     <string name="category_save">Сохранить</string>
     <string name="category_error_empty">Введите название</string>
     <string name="category_error_too_long">Не больше 30 символов</string>
-    <string name="category_error_duplicate">Такая категория уже есть</string>
-    <string name="category_delete_title">Удалить «%1$s»?</string>
-    <string name="category_delete_no_notes">В категории нет заметок.</string>
-    <string name="categories_empty">Категорий пока нет.\nСоздайте первую, чтобы группировать заметки</string>
-    <string name="notes_empty_filter">В этой категории нет заметок</string>
+    <string name="category_error_duplicate">Такая метка уже есть</string>
+    <string name="category_delete_title">Удалить «#%1$s»?</string>
+    <string name="category_delete_no_notes">С этой меткой нет заметок.</string>
+    <string name="categories_empty">Меток пока нет. Создайте первую, чтобы группировать заметки</string>
+    <string name="notes_empty_filter">С этой меткой заметок нет</string>
     <string name="cancel">Отмена</string>
 
     <!-- Common -->
     <string name="back">Назад</string>
     <string name="close">Закрыть</string>
     <string name="more_options">Ещё</string>
-    <string name="stub_body">Экран появится на одном из следующих этапов.</string>
     <string name="date_yesterday">вчера</string>
 
     <!-- Editor -->
@@ -80,7 +83,7 @@
     <string name="info_created">Создана: %1$s</string>
     <string name="info_updated">Изменена: %1$s</string>
 
-    <!-- Search -->
+    <!-- Search and sorting -->
     <string name="search_clear">Очистить</string>
     <string name="search_nothing_found">Ничего не найдено</string>
     <string name="filter_all">Все</string>
@@ -91,42 +94,33 @@
     <string name="sort_created_oldest">Созданные: старые сверху</string>
 
     <!-- Settings -->
-    <string name="settings_theme">Тема</string>
-    <string name="theme_system">Как в системе</string>
-    <string name="theme_light">Светлая</string>
-    <string name="theme_dark">Тёмная</string>
-    <string name="settings_dynamic_color">Динамические цвета</string>
-    <string name="settings_dynamic_color_hint">Цвета из обоев (Android 12+)</string>
-    <string name="settings_list_layout">Вид списка</string>
-    <string name="layout_grid">Сетка</string>
-    <string name="layout_list">Список</string>
     <string name="settings_text_size">Размер текста в редакторе</string>
     <string name="text_size_small">Маленький</string>
     <string name="text_size_medium">Средний</string>
     <string name="text_size_large">Крупный</string>
     <string name="settings_about">О приложении</string>
+    <string name="settings_version_value">Версия %1$s</string>
     <string name="backup_section">Резервная копия</string>
     <string name="backup_export">Экспорт заметок</string>
-    <string name="backup_export_hint">Сохранить все заметки и категории в файл JSON</string>
+    <string name="backup_export_hint">Сохранить все заметки и метки в файл JSON</string>
     <string name="backup_import">Импорт заметок</string>
     <string name="backup_import_hint">Добавить заметки из файла. Существующие не удаляются</string>
     <string name="backup_export_done">Экспортировано заметок: %1$d</string>
     <string name="backup_import_done">Добавлено %1$d, обновлено %2$d, пропущено %3$d</string>
-    <string name="backup_error_not_backup">Этот файл не похож на резервную копию Notebook. Ничего не изменено</string>
-    <string name="backup_error_newer">Файл создан более новой версией Notebook. Обновите приложение</string>
+    <string name="backup_error_not_backup">Этот файл не похож на резервную копию Aura. Ничего не изменено</string>
+    <string name="backup_error_newer">Файл создан более новой версией Aura. Обновите приложение</string>
     <string name="backup_error_io">Не удалось прочитать или сохранить файл</string>
-    <string name="settings_version">Версия</string>
 
-    <!-- Note colors -->
+    <!-- Note colors (neon accents) -->
     <string name="color_default">Без цвета</string>
     <string name="color_coral">Коралловый</string>
     <string name="color_peach">Персиковый</string>
-    <string name="color_sand">Песочный</string>
+    <string name="color_sand">Лимонный</string>
     <string name="color_mint">Мятный</string>
-    <string name="color_sage">Шалфей</string>
-    <string name="color_fog">Туманный</string>
-    <string name="color_storm">Грозовой</string>
-    <string name="color_dusk">Сиреневый</string>
+    <string name="color_sage">Салатовый</string>
+    <string name="color_fog">Небесный</string>
+    <string name="color_storm">Синий</string>
+    <string name="color_dusk">Лавандовый</string>
 
     <!-- Counts: Russian needs one / few / many forms -->
     <plurals name="notes_trashed">
@@ -142,10 +136,10 @@
         <item quantity="other">%d заметки в архиве</item>
     </plurals>
     <plurals name="category_delete_notes">
-        <item quantity="one">%d заметка останется без категории. Сами заметки не удаляются.</item>
-        <item quantity="few">%d заметки останутся без категории. Сами заметки не удаляются.</item>
-        <item quantity="many">%d заметок останутся без категории. Сами заметки не удаляются.</item>
-        <item quantity="other">%d заметки останутся без категории. Сами заметки не удаляются.</item>
+        <item quantity="one">%d заметка останется без метки. Сами заметки не удаляются.</item>
+        <item quantity="few">%d заметки останутся без метки. Сами заметки не удаляются.</item>
+        <item quantity="many">%d заметок останутся без метки. Сами заметки не удаляются.</item>
+        <item quantity="other">%d заметки останутся без метки. Сами заметки не удаляются.</item>
     </plurals>
     <plurals name="category_note_count">
         <item quantity="one">%d заметка</item>

@@ -12,6 +12,7 @@ import com.example.notebook.ui.UserMessenger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * Manual dependency injection: one place that creates the long-lived objects
@@ -34,6 +35,9 @@ class AppContainer(context: Context) {
     val categoryRepository: CategoryRepository by lazy { CategoryRepository(database) }
 
     val userMessenger = UserMessenger()
+
+    /** Tag filter of the home tab. Shared so the "Метки" tab can open home already filtered. */
+    val homeCategoryFilter = MutableStateFlow<Long?>(null)
 
     val backupRepository: BackupRepository by lazy { BackupRepository(database, context.contentResolver) }
 

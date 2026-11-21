@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- App icon background (blue-green accent of the fallback theme). -->
-    <color name="ic_launcher_background">#FF0B6E6E</color>
+    <!-- App background, also used as the window background before Compose draws. -->
+    <color name="aura_background">#FF121212</color>
+    <!-- App icon background: near-black, like the app itself. -->
+    <color name="ic_launcher_background">#FF121212</color>
 </resources>

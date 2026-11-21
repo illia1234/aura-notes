@@ -6,12 +6,10 @@ import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
 import com.example.notebook.data.repository.SettingsRepository
 import com.example.notebook.ui.NoteMessages
-import com.example.notebook.ui.UserMessage
 import com.example.notebook.ui.UserMessenger
 import com.example.notebook.ui.screens.notes.NoteItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -69,8 +67,6 @@ class BinViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BinUiState())
 
-    val messages: Flow<UserMessage> = messenger.messages
-
     fun toggleSelection(id: Long) = selection.update { if (id in it) it - id else it + id }
 
     fun clearSelection() = selection.update { emptySet() }
@@ -122,8 +118,4 @@ class BinViewModel(
         }
     }
 
-    fun runMessageAction(message: UserMessage) {
-        val action = message.action ?: return
-        appScope.launch { action() }
-    }
 }

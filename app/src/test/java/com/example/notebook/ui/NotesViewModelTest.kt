@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -45,6 +46,8 @@ class NotesViewModelTest {
     private lateinit var categories: CategoryRepository
     private lateinit var scope: CoroutineScope
     private lateinit var vm: NotesViewModel
+    private lateinit var settings: SettingsRepository
+    private val homeFilter = MutableStateFlow<Long?>(null)
 
     @Before
     fun setUp() {
@@ -55,8 +58,8 @@ class NotesViewModelTest {
         categories = CategoryRepository(db, clock.function)
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val file = folder.newFile("s.preferences_pb").also { it.delete() }
-        val settings = SettingsRepository(PreferenceDataStoreFactory.create(scope = scope, produceFile = { file }))
-        vm = NotesViewModel(notes, categories, settings, UserMessenger(), scope)
+        settings = SettingsRepository(PreferenceDataStoreFactory.create(scope = scope, produceFile = { file }))
+        vm = NotesViewModel(notes, categories, settings, homeFilter, UserMessenger(), scope)
     }
 
     @After
@@ -110,5 +113,30 @@ class NotesViewModelTest {
         val state = stateWhere { it.categories.isEmpty() }
         assertEquals(null, state.filterCategoryId)
         assertEquals(listOf("a"), state.titles())
+    }
+
+    @Test
+    fun favoritesTabShowsOnlyFavoritesAndIgnoresTagFilter() = runTest {
+        val work = (categories.createCategory("Работа") as CategoryResult.Success).id
+        val fav = notes.createNote("любимая", "")
+        notes.createNote("обычная", "", categoryId = work)
+        notes.setPinned(listOf(fav), true)
+        homeFilter.value = work // the home tab is filtered, favorites must not be
+
+        val favorites = NotesViewModel(notes, categories, settings, homeFilter, UserMessenger(), scope, favoritesOnly = true)
+        val state = withContext(Dispatchers.Default) {
+            withTimeout(5_000) { favorites.uiState.first { !it.isLoading && it.others.isNotEmpty() } }
+        }
+        assertEquals(listOf("любимая"), state.titles())
+    }
+
+    @Test
+    fun filterSetFromLabelsTabReachesHome() = runTest {
+        val work = (categories.createCategory("Работа") as CategoryResult.Success).id
+        notes.createNote("отчёт", "", categoryId = work)
+        notes.createNote("хлеб", "")
+
+        homeFilter.value = work // what tapping "#Работа" in the "Метки" tab does
+        assertEquals(listOf("отчёт"), stateWhere { it.filterCategoryId == work }.titles())
     }
 }

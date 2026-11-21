@@ -1,265 +1,189 @@
 package com.example.notebook.ui.screens.notes
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.rounded.EditNote
-import androidx.compose.ui.text.style.TextOverflow
-import com.example.notebook.domain.Category
-import com.example.notebook.ui.components.CategoryNameDialog
-import com.example.notebook.ui.components.CategoryPickerSheet
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.Sort
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
-import androidx.compose.ui.platform.LocalFocusManager
-import com.example.notebook.domain.SortOrder
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridScope
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
-import androidx.compose.foundation.lazy.staggeredgrid.items
-import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Label
-import androidx.compose.material.icons.automirrored.rounded.StickyNote2
-import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Archive
+import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.Menu
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.PushPin
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.ViewAgenda
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.notebook.R
+import com.example.notebook.domain.Category
 import com.example.notebook.domain.NoteColor
+import com.example.notebook.domain.SortOrder
 import com.example.notebook.ui.appContainer
+import com.example.notebook.ui.components.AuraTopBar
+import com.example.notebook.ui.components.CategoryNameDialog
+import com.example.notebook.ui.components.CategoryPickerSheet
+import com.example.notebook.ui.components.EmptyState
+import com.example.notebook.ui.components.GlowFab
 import com.example.notebook.ui.components.NoteCard
-import com.example.notebook.ui.LocalAppSettings
-import com.example.notebook.domain.ListLayout
-import com.example.notebook.ui.components.labelRes
 import com.example.notebook.ui.components.NoteColorSheet
-import kotlinx.coroutines.launch
+import com.example.notebook.ui.components.ScreenTitle
+import com.example.notebook.ui.components.SectionLabel
+import com.example.notebook.ui.components.fadeTopEdge
+import com.example.notebook.ui.components.glass
+import com.example.notebook.ui.components.labelRes
+import com.example.notebook.ui.components.noteTransitionKey
+import com.example.notebook.ui.components.sharedNoteBounds
+import com.example.notebook.ui.components.tabBarInset
+import com.example.notebook.ui.theme.AuraColors
 
-/** Screens reachable from the side menu (except "Notes", which is this screen). */
-enum class DrawerDestination { Categories, Archive, Trash, Settings }
-
+/**
+ * "Главная" tab (and "Избранное" with [favoritesOnly]): top bar with the Aura logo,
+ * the big "Заметки" title, tag chips and sort, a list of glass cards and the glowing "+".
+ * A long press switches the top bar to multi-select actions.
+ */
 @Composable
 fun NotesScreen(
+    favoritesOnly: Boolean,
     onOpenNote: (Long) -> Unit,
     onCreateNote: (categoryId: Long?) -> Unit,
-    onDrawerDestination: (DrawerDestination) -> Unit,
-    viewModel: NotesViewModel = viewModel {
+    onOpenSearch: () -> Unit,
+    viewModel: NotesViewModel = viewModel(key = if (favoritesOnly) "favorites" else "home") {
         val c = appContainer()
-        NotesViewModel(c.noteRepository, c.categoryRepository, c.settingsRepository, c.userMessenger, c.applicationScope)
+        NotesViewModel(
+            c.noteRepository, c.categoryRepository, c.settingsRepository,
+            c.homeCategoryFilter, c.userMessenger, c.applicationScope, favoritesOnly,
+        )
     },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val search by viewModel.search.collectAsStateWithLifecycle()
     val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
-    // Survives opening a result and coming back, so the user returns to their results.
-    var searchExpanded by rememberSaveable { mutableStateOf(false) }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val resources = LocalContext.current.resources
     val haptics = LocalHapticFeedback.current
-
-    // Grid or list, saved in DataStore (Settings and the toggle in the search bar).
-    val isGrid = LocalAppSettings.current.listLayout == ListLayout.GRID
     var showColorSheet by rememberSaveable { mutableStateOf(false) }
     var showCategorySheet by rememberSaveable { mutableStateOf(false) }
     var showNewCategory by rememberSaveable { mutableStateOf(false) }
-    var fabExpanded by rememberSaveable { mutableStateOf(true) }
 
-    // Snackbars, including ones sent by the editor after it closed.
-    LaunchedEffect(viewModel) {
-        viewModel.messages.collect { message ->
-            val label = message.actionLabel?.invoke(resources)
-            val result = snackbarHostState.showSnackbar(
-                message = message.text(resources),
-                actionLabel = label,
-                withDismissAction = false,
-                duration = if (label != null) SnackbarDuration.Long else SnackbarDuration.Short,
-            )
-            if (result == SnackbarResult.ActionPerformed) viewModel.runMessageAction(message)
-        }
+    BackHandler(enabled = state.isSelecting) { viewModel.clearSelection() }
+
+    val onCardClick: (Long) -> Unit = { id -> if (state.isSelecting) viewModel.toggleSelection(id) else onOpenNote(id) }
+    val onCardLongClick: (Long) -> Unit = { id ->
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        viewModel.toggleSelection(id)
     }
 
-    // System "Back": close the drawer first, then leave selection mode, then exit.
-    BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
-    BackHandler(enabled = state.isSelecting && !drawerState.isOpen) { viewModel.clearSelection() }
-
-    // FAB shrinks to "+" while scrolling down and expands again when scrolling up.
-    val fabScroll = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -1f) fabExpanded = false else if (available.y > 1f) fabExpanded = true
-                return Offset.Zero
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            if (state.isSelecting) {
+                SelectionBar(
+                    count = state.selectedIds.size,
+                    allFavorite = state.selectedNotes.all { it.isPinned },
+                    onClose = viewModel::clearSelection,
+                    onToggleFavorite = viewModel::togglePinSelected,
+                    onColor = { showColorSheet = true },
+                    onCategory = { showCategorySheet = true },
+                    onArchive = viewModel::archiveSelected,
+                    onDelete = viewModel::trashSelected,
+                )
+            } else {
+                AuraTopBar(onSearch = onOpenSearch)
             }
-        }
-    }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = !state.isSelecting,
-        drawerContent = {
-            NotesDrawer(
-                categories = state.categories,
-                filterCategoryId = state.filterCategoryId,
-                onFilter = { categoryId ->
-                    scope.launch { drawerState.close() }
-                    viewModel.setFilter(categoryId)
-                },
-                onDestination = { destination ->
-                    scope.launch { drawerState.close() }
-                    onDrawerDestination(destination)
-                },
-            )
-        },
-    ) {
-        Scaffold(
-            topBar = {
-                if (state.isSelecting) {
-                    SelectionTopBar(
-                        count = state.selectedIds.size,
-                        allPinned = state.selectedNotes.all { it.isPinned },
-                        onClose = viewModel::clearSelection,
-                        onTogglePin = viewModel::togglePinSelected,
-                        onColor = { showColorSheet = true },
-                        onCategory = { showCategorySheet = true },
-                        onArchive = viewModel::archiveSelected,
-                        onDelete = viewModel::trashSelected,
-                    )
-                } else {
-                    Column {
-                        NotesSearchBar(
-                            query = viewModel.query,
-                            onQueryChange = viewModel::onQueryChange,
-                            expanded = searchExpanded,
-                            onExpandedChange = { expanded ->
-                                searchExpanded = expanded
-                                if (!expanded) viewModel.onQueryChange("")
-                            },
-                            isGrid = isGrid,
-                            onMenuClick = { scope.launch { drawerState.open() } },
-                            onToggleLayout = { viewModel.setListLayout(if (isGrid) ListLayout.LIST else ListLayout.GRID) },
-                        ) {
-                            SearchResults(search = search, onOpenNote = onOpenNote)
-                        }
-                        if (!searchExpanded) {
-                            FilterRow(
-                                categories = state.categories,
-                                filterCategoryId = state.filterCategoryId,
-                                onFilterChange = viewModel::setFilter,
-                                sortOrder = sortOrder,
-                                onSortOrderChange = viewModel::setSortOrder,
-                            )
-                        }
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 8.dp,
+                    // Room for the tab bar and the "+" button above it.
+                    bottom = tabBarInset() + if (favoritesOnly) 16.dp else 96.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f).fadeTopEdge(),
+            ) {
+                item(key = "title") {
+                    ScreenTitle(stringResource(if (favoritesOnly) R.string.tab_favorites else R.string.title_notes))
+                }
+                if (!favoritesOnly && (state.categories.isNotEmpty() || !state.isEmpty)) {
+                    item(key = "filters") {
+                        FilterRow(
+                            categories = state.categories,
+                            filterCategoryId = state.filterCategoryId,
+                            onFilterChange = viewModel::setFilter,
+                            sortOrder = sortOrder,
+                            onSortOrderChange = viewModel::setSortOrder,
+                        )
                     }
                 }
-            },
-            floatingActionButton = {
-                if (!state.isSelecting && !searchExpanded) {
-                    ExtendedFloatingActionButton(
-                        // Inside a category filter the new note gets that category,
-                        // otherwise it would vanish from the current view once saved.
-                        onClick = { onCreateNote(state.filterCategoryId) },
-                        expanded = fabExpanded,
-                        icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                        text = { Text(stringResource(R.string.new_note)) },
-                    )
+                if (state.isEmpty) {
+                    item(key = "empty") {
+                        EmptyState(
+                            icon = when {
+                                favoritesOnly -> Icons.Outlined.FavoriteBorder
+                                state.filterCategoryId != null -> Icons.AutoMirrored.Outlined.Label
+                                else -> Icons.AutoMirrored.Outlined.StickyNote2
+                            },
+                            text = stringResource(
+                                when {
+                                    favoritesOnly -> R.string.favorites_empty
+                                    state.filterCategoryId != null -> R.string.notes_empty_filter
+                                    else -> R.string.notes_empty
+                                },
+                            ),
+                        )
+                    }
                 }
-            },
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-        ) { padding ->
-            when {
-                state.isEmpty -> EmptyNotes(filtered = state.filterCategoryId != null, Modifier.padding(padding))
-                else -> NotesGrid(
-                    state = state,
-                    isGrid = isGrid,
-                    contentPadding = padding,
-                    onClick = { id ->
-                        if (state.isSelecting) viewModel.toggleSelection(id) else onOpenNote(id)
-                    },
-                    onLongClick = { id ->
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.toggleSelection(id)
-                    },
-                    modifier = Modifier.nestedScroll(fabScroll),
-                )
+                if (state.showSections) section("pinned", R.string.notes_pinned)
+                notes(state.pinned, state.selectedIds, onCardClick, onCardLongClick)
+                if (state.showSections) section("others", R.string.notes_others)
+                notes(state.others, state.selectedIds, onCardClick, onCardLongClick)
             }
+        }
+
+        if (!favoritesOnly && !state.isSelecting) {
+            GlowFab(
+                // Inside a tag filter the new note gets that tag, otherwise it would vanish
+                // from the current view once saved.
+                onClick = { onCreateNote(state.filterCategoryId) },
+                contentDescription = stringResource(R.string.new_note),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 20.dp, bottom = tabBarInset() + 20.dp)
+                    // A new note grows out of the "+" button.
+                    .sharedNoteBounds(noteTransitionKey(null)),
+            )
         }
     }
 
@@ -303,62 +227,21 @@ fun NotesScreen(
     }
 }
 
-@Composable
-private fun NotesGrid(
-    state: NotesUiState,
-    isGrid: Boolean,
-    contentPadding: PaddingValues,
-    onClick: (Long) -> Unit,
-    onLongClick: (Long) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val gridState = rememberLazyStaggeredGridState()
-    LazyVerticalStaggeredGrid(
-        columns = StaggeredGridCells.Fixed(if (isGrid) 2 else 1),
-        state = gridState,
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = contentPadding.calculateTopPadding() + 4.dp,
-            // Extra space so the last card is never hidden under the FAB.
-            bottom = contentPadding.calculateBottomPadding() + 88.dp,
-        ),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalItemSpacing = 8.dp,
-        modifier = modifier.fillMaxSize(),
-    ) {
-        val maxLines = if (isGrid) 6 else 3
-        if (state.showSections) sectionHeader("pinned_header", R.string.notes_pinned)
-        noteItems(state.pinned, state.selectedIds, maxLines, onClick, onLongClick)
-        if (state.showSections && state.others.isNotEmpty()) sectionHeader("others_header", R.string.notes_others)
-        noteItems(state.others, state.selectedIds, maxLines, onClick, onLongClick)
-    }
+private fun LazyListScope.section(key: String, textRes: Int) {
+    item(key = key) { SectionLabel(stringResource(textRes), Modifier.animateItem()) }
 }
 
-private fun LazyStaggeredGridScope.sectionHeader(key: String, textRes: Int) {
-    item(key = key, span = StaggeredGridItemSpan.FullLine) {
-        Text(
-            text = stringResource(textRes),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.animateItem().padding(start = 4.dp, top = 8.dp, bottom = 4.dp),
-        )
-    }
-}
-
-private fun LazyStaggeredGridScope.noteItems(
+private fun LazyListScope.notes(
     items: List<NoteItem>,
     selectedIds: Set<Long>,
-    maxLines: Int,
     onClick: (Long) -> Unit,
     onLongClick: (Long) -> Unit,
 ) {
-    // Keys = note ids, so animateItem() can move a card (e.g. into "Закреплённые") smoothly.
+    // Keys = note ids, so animateItem() can move a card (e.g. into "Избранные") smoothly.
     items(items, key = { it.note.id }) { item ->
         NoteCard(
             note = item.note,
             categoryName = item.categoryName,
-            maxContentLines = maxLines,
             isSelected = item.note.id in selectedIds,
             onClick = { onClick(item.note.id) },
             onLongClick = { onLongClick(item.note.id) },
@@ -367,161 +250,7 @@ private fun LazyStaggeredGridScope.noteItems(
     }
 }
 
-@Composable
-private fun EmptyNotes(filtered: Boolean, modifier: Modifier = Modifier) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = modifier.fillMaxSize().padding(32.dp),
-    ) {
-        Icon(
-            if (filtered) Icons.AutoMirrored.Rounded.Label else Icons.AutoMirrored.Rounded.StickyNote2,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(64.dp),
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = stringResource(if (filtered) R.string.notes_empty_filter else R.string.notes_empty),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-/**
- * The pill-shaped M3 search bar. Collapsed: menu button, hint, list/grid toggle.
- * Tapping it expands to full screen (standard SearchBar behavior) with [results] inside.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun NotesSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    isGrid: Boolean,
-    onMenuClick: () -> Unit,
-    onToggleLayout: () -> Unit,
-    results: @Composable () -> Unit,
-) {
-    val focusManager = LocalFocusManager.current
-    // The side margins disappear as the bar grows to full screen.
-    val sidePadding by animateDpAsState(if (expanded) 0.dp else 16.dp, label = "searchBarPadding")
-
-    // System "Back" closes the search first.
-    BackHandler(enabled = expanded) { onExpandedChange(false) }
-
-    val searchHint = stringResource(R.string.search_hint)
-    val focusRequester = remember { FocusRequester() }
-    // Opening the search puts the cursor in the field and brings up the keyboard.
-    LaunchedEffect(expanded) { if (expanded) focusRequester.requestFocus() }
-
-    SearchBar(
-        inputField = {
-            Box(Modifier.fillMaxWidth()) {
-                SearchBarDefaults.InputField(
-                    query = query,
-                    onQueryChange = onQueryChange,
-                    onSearch = { focusManager.clearFocus() },
-                    expanded = expanded,
-                    // Focus alone must not open the search: with a hardware keyboard Android
-                    // focuses the first field automatically, which would pop the search open.
-                    // Opening happens only through the tap target below.
-                    onExpandedChange = { if (!it) onExpandedChange(false) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester)
-                        .focusProperties { canFocus = expanded },
-                    placeholder = { Text(searchHint) },
-                    leadingIcon = {
-                        if (expanded) {
-                            IconButton(onClick = { onExpandedChange(false) }) {
-                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
-                            }
-                        } else {
-                            IconButton(onClick = onMenuClick) {
-                                Icon(Icons.Rounded.Menu, contentDescription = stringResource(R.string.open_menu))
-                            }
-                        }
-                    },
-                    trailingIcon = {
-                        if (expanded) {
-                            if (query.isNotEmpty()) {
-                                IconButton(onClick = { onQueryChange("") }) {
-                                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.search_clear))
-                                }
-                            }
-                        } else {
-                            IconButton(onClick = onToggleLayout) {
-                                Icon(
-                                    imageVector = if (isGrid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
-                                    contentDescription = stringResource(if (isGrid) R.string.show_as_list else R.string.show_as_grid),
-                                )
-                            }
-                        }
-                    },
-                )
-                if (!expanded) {
-                    // Tap target over the hint text (between the menu and layout buttons).
-                    // Also reachable with TalkBack and a keyboard, as a "Поиск в заметках" button.
-                    Box(
-                        Modifier
-                            .matchParentSize()
-                            .padding(horizontal = 56.dp)
-                            .clickable(onClickLabel = searchHint, role = Role.Button) { onExpandedChange(true) }
-                            .semantics { contentDescription = searchHint },
-                    )
-                }
-            }
-        },
-        expanded = expanded,
-        onExpandedChange = onExpandedChange,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = sidePadding),
-    ) {
-        results()
-    }
-}
-
-/** Results inside the expanded search bar: one column of cards with matches highlighted. */
-@Composable
-private fun SearchResults(search: SearchState, onOpenNote: (Long) -> Unit) {
-    if (search.showNothingFound) {
-        Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.TopCenter) {
-            Text(
-                text = stringResource(R.string.search_nothing_found),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 32.dp),
-            )
-        }
-        return
-    }
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxSize().imePadding(),
-    ) {
-        items(search.results, key = { it.note.id }) { item ->
-            NoteCard(
-                note = item.note,
-                categoryName = item.categoryName,
-                maxContentLines = 3,
-                isSelected = false,
-                onClick = { onOpenNote(item.note.id) },
-                onLongClick = {},
-                highlight = search.query,
-                modifier = Modifier.animateItem(),
-            )
-        }
-    }
-}
-
-/**
- * Row under the search bar: "Все" and the category chips, scrolling sideways,
- * and the sort button at the end.
- */
+/** "Все" and the tag chips (scroll sideways), sort button at the end. */
 @Composable
 private fun FilterRow(
     categories: List<Category>,
@@ -530,29 +259,22 @@ private fun FilterRow(
     sortOrder: SortOrder,
     onSortOrderChange: (SortOrder) -> Unit,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-    ) {
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(start = 16.dp, end = 8.dp),
-            modifier = Modifier.weight(1f),
-        ) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
             item(key = "all") {
-                FilterChip(
+                AuraChip(
+                    label = stringResource(R.string.filter_all),
                     selected = filterCategoryId == null,
                     onClick = { onFilterChange(null) },
-                    label = { Text(stringResource(R.string.filter_all)) },
                 )
             }
             items(categories, key = { it.id }) { category ->
                 val selected = filterCategoryId == category.id
-                FilterChip(
+                AuraChip(
+                    label = "#${category.name}",
                     selected = selected,
                     // Tapping the active chip again goes back to "Все".
                     onClick = { onFilterChange(if (selected) null else category.id) },
-                    label = { Text(category.name, maxLines = 1) },
                 )
             }
         }
@@ -561,11 +283,28 @@ private fun FilterRow(
 }
 
 @Composable
+private fun AuraChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label, maxLines = 1) },
+        shape = CircleShape,
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = AuraColors.Pill.copy(alpha = 0.6f),
+            labelColor = AuraColors.TextSecondary,
+            selectedContainerColor = AuraColors.TextPrimary,
+            selectedLabelColor = AuraColors.Background,
+        ),
+        border = null,
+    )
+}
+
+@Composable
 private fun SortButton(current: SortOrder, onSelect: (SortOrder) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
-            Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = stringResource(R.string.sort))
+            Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = stringResource(R.string.sort), tint = AuraColors.TextPrimary)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             SortOrder.entries.forEach { order ->
@@ -575,116 +314,57 @@ private fun SortButton(current: SortOrder, onSelect: (SortOrder) -> Unit) {
                         open = false
                         onSelect(order)
                     },
-                    trailingIcon = {
-                        if (order == current) Icon(Icons.Rounded.Check, contentDescription = null)
-                    },
+                    trailingIcon = { if (order == current) Icon(Icons.Rounded.Check, contentDescription = null) },
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Multi-select actions in a glass bar at the top. */
 @Composable
-private fun SelectionTopBar(
+private fun SelectionBar(
     count: Int,
-    allPinned: Boolean,
+    allFavorite: Boolean,
     onClose: () -> Unit,
-    onTogglePin: () -> Unit,
+    onToggleFavorite: () -> Unit,
     onColor: () -> Unit,
     onCategory: () -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    TopAppBar(
-        navigationIcon = {
-            IconButton(onClick = onClose) {
-                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.selection_clear))
-            }
-        },
-        title = { Text(count.toString()) },
-        actions = {
-            IconButton(onClick = onTogglePin) {
-                Icon(
-                    imageVector = if (allPinned) Icons.Rounded.PushPin else Icons.Outlined.PushPin,
-                    contentDescription = stringResource(if (allPinned) R.string.unpin else R.string.pin),
-                )
-            }
-            IconButton(onClick = onColor) {
-                Icon(Icons.Rounded.Palette, contentDescription = stringResource(R.string.color))
-            }
-            IconButton(onClick = onCategory) {
-                Icon(Icons.AutoMirrored.Rounded.Label, contentDescription = stringResource(R.string.category))
-            }
-            IconButton(onClick = onArchive) {
-                Icon(Icons.Rounded.Archive, contentDescription = stringResource(R.string.archive))
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.delete))
-            }
-        },
-    )
-}
-
-/**
- * Side menu (spec): "Заметки", categories with note counts, "Управление категориями",
- * "Архив", "Корзина", "Настройки". Tapping a category filters the main screen.
- */
-@Composable
-private fun NotesDrawer(
-    categories: List<Category>,
-    filterCategoryId: Long?,
-    onFilter: (Long?) -> Unit,
-    onDestination: (DrawerDestination) -> Unit,
-) {
-    ModalDrawerSheet {
-        // Many categories must not push "Настройки" off screen, so the menu scrolls.
-        Column(Modifier.verticalScroll(rememberScrollState())) {
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 28.dp, vertical = 16.dp),
-            )
-            DrawerItem(
-                icon = Icons.AutoMirrored.Rounded.StickyNote2,
-                label = stringResource(R.string.nav_notes),
-                selected = filterCategoryId == null,
-            ) { onFilter(null) }
-            categories.forEach { category ->
-                DrawerItem(
-                    icon = Icons.AutoMirrored.Rounded.Label,
-                    label = category.name,
-                    selected = filterCategoryId == category.id,
-                    badge = category.noteCount.toString(),
-                ) { onFilter(category.id) }
-            }
-            HorizontalDivider(Modifier.padding(horizontal = 28.dp, vertical = 8.dp))
-            DrawerItem(Icons.Rounded.EditNote, stringResource(R.string.nav_manage_categories)) {
-                onDestination(DrawerDestination.Categories)
-            }
-            DrawerItem(Icons.Rounded.Archive, stringResource(R.string.nav_archive)) { onDestination(DrawerDestination.Archive) }
-            DrawerItem(Icons.Rounded.Delete, stringResource(R.string.nav_trash)) { onDestination(DrawerDestination.Trash) }
-            DrawerItem(Icons.Rounded.Settings, stringResource(R.string.nav_settings)) { onDestination(DrawerDestination.Settings) }
-            Spacer(Modifier.height(12.dp))
-        }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .height(56.dp)
+            .glass(CircleShape)
+            .padding(horizontal = 4.dp),
+    ) {
+        BarIcon(Icons.Rounded.Close, R.string.selection_clear, onClose)
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            color = AuraColors.TextPrimary,
+            modifier = Modifier.weight(1f).padding(start = 4.dp),
+        )
+        BarIcon(
+            if (allFavorite) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
+            if (allFavorite) R.string.unpin else R.string.pin,
+            onToggleFavorite,
+        )
+        BarIcon(Icons.Outlined.Palette, R.string.color, onColor)
+        BarIcon(Icons.AutoMirrored.Outlined.Label, R.string.category, onCategory)
+        BarIcon(Icons.Outlined.Archive, R.string.archive, onArchive)
+        BarIcon(Icons.Outlined.Delete, R.string.delete, onDelete)
     }
 }
 
 @Composable
-private fun DrawerItem(
-    icon: ImageVector,
-    label: String,
-    selected: Boolean = false,
-    badge: String? = null,
-    onClick: () -> Unit,
-) {
-    NavigationDrawerItem(
-        icon = { Icon(icon, contentDescription = null) },
-        label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        badge = badge?.let { { Text(it) } },
-        selected = selected,
-        onClick = onClick,
-        modifier = Modifier.padding(horizontal = 12.dp),
-    )
+private fun BarIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, labelRes: Int, onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        Icon(icon, contentDescription = stringResource(labelRes), tint = AuraColors.TextPrimary)
+    }
 }

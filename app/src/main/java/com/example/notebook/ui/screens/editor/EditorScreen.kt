@@ -1,6 +1,22 @@
 package com.example.notebook.ui.screens.editor
 
 import android.content.ClipData
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import com.example.notebook.ui.components.GlowDot
+import com.example.notebook.ui.components.glass
+import com.example.notebook.ui.components.noteTransitionKey
+import com.example.notebook.ui.components.sharedNoteBounds
+import com.example.notebook.ui.theme.AuraColors
+import com.example.notebook.ui.theme.accent
+import com.example.notebook.ui.theme.glows
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Unarchive
 import androidx.compose.ui.res.pluralStringResource
@@ -35,11 +51,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -84,8 +97,6 @@ import com.example.notebook.domain.NoteColor
 import com.example.notebook.ui.appContainer
 import com.example.notebook.ui.components.BackButton
 import com.example.notebook.ui.components.NoteColorSheet
-import com.example.notebook.ui.theme.containerColor
-import com.example.notebook.ui.theme.contentColor
 import com.example.notebook.ui.util.formatFullDate
 import com.example.notebook.ui.util.formatShortDate
 
@@ -118,17 +129,37 @@ fun EditorScreen(
     // before ON_STOP, so the text is written as early as possible.
     LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { viewModel.saveNow() }
 
-    // The whole editor, including the top bar, takes the note color; it changes smoothly.
-    val background by animateColorAsState(
-        targetValue = viewModel.color.editorBackground(),
-        animationSpec = tween(250),
-        label = "editorBackground",
+    // Aura: the editor is always dark; the note color shows as a soft glow at the top
+    // and as the dot next to the title. Changing the color blends the glow smoothly.
+    val accent by animateColorAsState(
+        targetValue = viewModel.color.accent(),
+        animationSpec = tween(300),
+        label = "editorAccent",
     )
-    val contentColor = viewModel.color.contentColor()
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (viewModel.color.glows) 0.42f else 0f,
+        animationSpec = tween(300),
+        label = "editorGlow",
+    )
+    val background = AuraColors.Background
+    val contentColor = AuraColors.TextPrimary
 
     Scaffold(
         containerColor = background,
         contentColor = contentColor,
+        modifier = Modifier
+            // The editor grows out of the tapped card (or the "+" button) and shrinks back on "Назад".
+            .sharedNoteBounds(noteTransitionKey(viewModel.openedNoteId))
+            .background(background)
+            .drawBehind {
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(accent.copy(alpha = glowAlpha), Color.Transparent),
+                        center = Offset(size.width / 2, 0f),
+                        radius = size.width * 0.9f,
+                    ),
+                )
+            },
         topBar = {
             TopAppBar(
                 navigationIcon = { BackButton(onBack) },
@@ -160,7 +191,7 @@ fun EditorScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    scrolledContainerColor = background,
+                    scrolledContainerColor = Color.Transparent,
                     navigationIconContentColor = contentColor,
                     actionIconContentColor = contentColor,
                 ),
@@ -195,6 +226,8 @@ fun EditorScreen(
                 readOnly = inTrash,
                 textSize = LocalAppSettings.current.editorTextSize,
                 textColor = contentColor,
+                accent = accent,
+                accentGlows = viewModel.color.glows,
                 modifier = Modifier.padding(padding),
             )
         }
@@ -248,11 +281,6 @@ fun EditorScreen(
     }
 }
 
-/** The editor uses the plain surface for notes without a color, the palette color otherwise. */
-@Composable
-private fun NoteColor.editorBackground(): Color =
-    if (this == NoteColor.DEFAULT) MaterialTheme.colorScheme.surface else containerColor()
-
 @Composable
 private fun EditorActions(
     isPinned: Boolean,
@@ -269,10 +297,12 @@ private fun EditorActions(
     val context = LocalContext.current
     var menuOpen by remember { mutableStateOf(false) }
 
+    // "Избранное" (heart) is the former pin: favorites stay on top and fill the heart tab.
     IconButton(onClick = onTogglePin) {
         Icon(
-            imageVector = if (isPinned) Icons.Rounded.PushPin else Icons.Outlined.PushPin,
+            imageVector = if (isPinned) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
             contentDescription = stringResource(if (isPinned) R.string.unpin else R.string.pin),
+            tint = if (isPinned) AuraColors.AccentViolet else LocalContentColor.current,
         )
     }
     if (isArchived) {
@@ -321,6 +351,8 @@ private fun EditorFields(
     readOnly: Boolean,
     textSize: EditorTextSize,
     textColor: Color,
+    accent: Color,
+    accentGlows: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val contentFocus = remember { FocusRequester() }
@@ -339,27 +371,31 @@ private fun EditorFields(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp),
     ) {
-        PlainField(
-            value = title,
-            // The title wraps onto several lines but never contains line breaks:
-            // Enter (or Tab) jumps to the text instead, like "Далее" in the spec.
-            onValueChange = { value ->
-                if (value.any { it == '\n' || it == '\t' }) {
-                    onTitleChange(value.filterNot { it == '\n' || it == '\t' })
-                    contentFocus.requestFocus()
-                } else {
-                    onTitleChange(value)
-                }
-            },
-            placeholder = stringResource(R.string.editor_title_hint),
-            style = titleStyle,
-            cursorColor = textColor,
-            keyboardOptions = sentences.copy(imeAction = ImeAction.Next),
-            keyboardActions = KeyboardActions(onNext = { contentFocus.requestFocus() }),
-            singleLine = false,
-            readOnly = readOnly,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        )
+        // Title row: the note's glowing color dot, then the title.
+        Row(verticalAlignment = Alignment.Top) {
+            GlowDot(color = accent, glow = accentGlows, modifier = Modifier.padding(top = 10.dp), size = 12.dp)
+            PlainField(
+                value = title,
+                // The title wraps onto several lines but never contains line breaks:
+                // Enter (or Tab) jumps to the text instead, like "Далее" in the spec.
+                onValueChange = { value ->
+                    if (value.any { it == '\n' || it == '\t' }) {
+                        onTitleChange(value.filterNot { it == '\n' || it == '\t' })
+                        contentFocus.requestFocus()
+                    } else {
+                        onTitleChange(value)
+                    }
+                },
+                placeholder = stringResource(R.string.editor_title_hint),
+                style = titleStyle,
+                cursorColor = textColor,
+                keyboardOptions = sentences.copy(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { contentFocus.requestFocus() }),
+                singleLine = false,
+                readOnly = readOnly,
+                modifier = Modifier.weight(1f).padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
+            )
+        }
         PlainField(
             value = content,
             onValueChange = onContentChange,
@@ -419,12 +455,17 @@ private fun EditorBottomBar(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    // A glass pill floating at the bottom (above the keyboard while typing).
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .glass(CircleShape)
+            .padding(horizontal = 4.dp, vertical = 2.dp),
     ) {
         IconButton(onClick = onColorClick) {
-            Icon(Icons.Rounded.Palette, contentDescription = stringResource(R.string.color))
+            Icon(Icons.Outlined.Palette, contentDescription = stringResource(R.string.color))
         }
         // Shows the category name, or just the label icon when the note has none.
         TextButton(

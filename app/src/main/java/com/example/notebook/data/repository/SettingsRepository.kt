@@ -2,15 +2,12 @@ package com.example.notebook.data.repository
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.notebook.domain.AppSettings
 import com.example.notebook.domain.EditorTextSize
-import com.example.notebook.domain.ListLayout
 import com.example.notebook.domain.SortOrder
-import com.example.notebook.domain.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -32,9 +29,6 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     val settings: Flow<AppSettings> = preferences.map { prefs ->
         val defaults = AppSettings()
         AppSettings(
-            themeMode = prefs[THEME].toEnum(defaults.themeMode),
-            dynamicColor = prefs[DYNAMIC_COLOR] ?: defaults.dynamicColor,
-            listLayout = prefs[LIST_LAYOUT].toEnum(defaults.listLayout),
             sortOrder = prefs[SORT_ORDER].toEnum(defaults.sortOrder),
             editorTextSize = prefs[EDITOR_TEXT_SIZE].toEnum(defaults.editorTextSize),
         )
@@ -42,20 +36,11 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     val sortOrder: Flow<SortOrder> = settings.map { it.sortOrder }.distinctUntilChanged()
 
-    suspend fun setThemeMode(mode: ThemeMode) = dataStore.edit { it[THEME] = mode.name }
-
-    suspend fun setDynamicColor(enabled: Boolean) = dataStore.edit { it[DYNAMIC_COLOR] = enabled }
-
-    suspend fun setListLayout(layout: ListLayout) = dataStore.edit { it[LIST_LAYOUT] = layout.name }
-
     suspend fun setSortOrder(order: SortOrder) = dataStore.edit { it[SORT_ORDER] = order.name }
 
     suspend fun setEditorTextSize(size: EditorTextSize) = dataStore.edit { it[EDITOR_TEXT_SIZE] = size.name }
 
     private companion object {
-        val THEME = stringPreferencesKey("theme_mode")
-        val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
-        val LIST_LAYOUT = stringPreferencesKey("list_layout")
         val SORT_ORDER = stringPreferencesKey("sort_order")
         val EDITOR_TEXT_SIZE = stringPreferencesKey("editor_text_size")
     }
