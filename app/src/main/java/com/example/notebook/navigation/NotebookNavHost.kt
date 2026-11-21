@@ -30,7 +30,7 @@ fun NotebookNavHost(
             // so a quick double tap cannot open the editor twice.
             NotesScreen(
                 onOpenNote = { id -> navController.navigate(EditorRoute(noteId = id)) { launchSingleTop = true } },
-                onCreateNote = dropUnlessResumed { navController.navigate(EditorRoute()) },
+                onCreateNote = { categoryId -> navController.navigate(EditorRoute(categoryId = categoryId)) { launchSingleTop = true } },
                 onDrawerDestination = { destination ->
                     val route: Any = when (destination) {
                         DrawerDestination.Categories -> CategoriesRoute

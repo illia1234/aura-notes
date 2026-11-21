@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
 import com.example.notebook.data.repository.SettingsRepository
+import com.example.notebook.domain.Category
+import com.example.notebook.domain.CategoryResult
 import com.example.notebook.domain.Note
 import com.example.notebook.domain.NoteColor
 import com.example.notebook.domain.NoteSearch
@@ -40,6 +42,10 @@ data class NotesUiState(
     val others: List<NoteItem> = emptyList(),
     val selectedIds: Set<Long> = emptySet(),
     val isLoading: Boolean = true,
+    /** All categories with counts, for the chips and the side menu. */
+    val categories: List<Category> = emptyList(),
+    /** Category filter; null = "Все". */
+    val filterCategoryId: Long? = null,
 ) {
     val isEmpty: Boolean get() = !isLoading && pinned.isEmpty() && others.isEmpty()
     val isSelecting: Boolean get() = selectedIds.isNotEmpty()
@@ -63,7 +69,7 @@ data class SearchState(val query: String = "", val results: List<NoteItem> = emp
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class NotesViewModel(
     private val notes: NoteRepository,
-    categories: CategoryRepository,
+    private val categoryRepository: CategoryRepository,
     private val settings: SettingsRepository,
     private val messenger: UserMessenger,
     private val appScope: CoroutineScope,
@@ -80,8 +86,19 @@ class NotesViewModel(
         .flatMapLatest { order -> notes.observeActiveNotes(order) }
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
-    private val categoryNames: Flow<Map<Long, String>> = categories.observeCategories()
+    private val categoryList: Flow<List<Category>> = categoryRepository.observeCategories()
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    private val categoryNames: Flow<Map<Long, String>> = categoryList
         .map { list -> list.associate { it.id to it.name } }
+
+    /** Chosen category chip; null = "Все". */
+    private val filter = MutableStateFlow<Long?>(null)
+
+    fun setFilter(categoryId: Long?) {
+        filter.value = categoryId
+        clearSelection()
+    }
 
     /** Search text. Compose state (like the editor fields) so typing stays smooth. */
     var query by mutableStateOf("")
@@ -106,19 +123,39 @@ class NotesViewModel(
 
     val uiState: StateFlow<NotesUiState> = combine(
         activeNotes,
-        categoryNames,
+        categoryList,
+        filter,
         selection,
-    ) { noteList, names, selected ->
-        val items = noteList.map { NoteItem(it, it.categoryId?.let(names::get)) }
-        val visibleIds = noteList.mapTo(HashSet()) { it.id }
+    ) { noteList, cats, filterId, selected ->
+        val names = cats.associate { it.id to it.name }
+        // If the filtered category was deleted, fall back to "Все".
+        val activeFilter = filterId?.takeIf { it in names }
+        val shown = if (activeFilter == null) noteList else noteList.filter { it.categoryId == activeFilter }
+        val items = shown.map { NoteItem(it, it.categoryId?.let(names::get)) }
+        val visibleIds = shown.mapTo(HashSet()) { it.id }
         NotesUiState(
             pinned = items.filter { it.note.isPinned },
             others = items.filterNot { it.note.isPinned },
-            // Notes that disappeared (e.g. deleted elsewhere) drop out of the selection.
+            // Notes that disappeared (deleted, filtered out) drop out of the selection.
             selectedIds = selected intersect visibleIds,
             isLoading = false,
+            categories = cats,
+            filterCategoryId = activeFilter,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesUiState())
+
+    fun setCategoryForSelected(categoryId: Long?) {
+        val ids = uiState.value.selectedIds.toList()
+        clearSelection()
+        appScope.launch { notes.setCategory(ids, categoryId) }
+    }
+
+    /** "+ Новая категория" from selection mode: create it, then assign it to the selected notes. */
+    suspend fun createCategoryForSelected(name: String): CategoryResult {
+        val result = categoryRepository.createCategory(name)
+        if (result is CategoryResult.Success) setCategoryForSelected(result.id)
+        return result
+    }
 
     /** Snackbar messages from this screen and from the editor. */
     val messages: Flow<UserMessage> = messenger.messages

@@ -32,6 +32,24 @@
     <string name="note_archived">Заметка в архиве</string>
     <string name="empty_note_discarded">Пустая заметка удалена</string>
 
+    <!-- Categories -->
+    <string name="category">Категория</string>
+    <string name="category_none">Без категории</string>
+    <string name="category_new">Новая категория</string>
+    <string name="category_name">Название</string>
+    <string name="category_create">Создать</string>
+    <string name="category_rename">Переименовать</string>
+    <string name="category_rename_title">Переименовать категорию</string>
+    <string name="category_save">Сохранить</string>
+    <string name="category_error_empty">Введите название</string>
+    <string name="category_error_too_long">Не больше 30 символов</string>
+    <string name="category_error_duplicate">Такая категория уже есть</string>
+    <string name="category_delete_title">Удалить «%1$s»?</string>
+    <string name="category_delete_no_notes">В категории нет заметок.</string>
+    <string name="categories_empty">Категорий пока нет.\nСоздайте первую, чтобы группировать заметки</string>
+    <string name="notes_empty_filter">В этой категории нет заметок</string>
+    <string name="cancel">Отмена</string>
+
     <!-- Common -->
     <string name="back">Назад</string>
     <string name="close">Закрыть</string>
@@ -92,5 +110,17 @@
         <item quantity="few">%d заметки в архиве</item>
         <item quantity="many">%d заметок в архиве</item>
         <item quantity="other">%d заметки в архиве</item>
+    </plurals>
+    <plurals name="category_delete_notes">
+        <item quantity="one">%d заметка останется без категории. Сами заметки не удаляются.</item>
+        <item quantity="few">%d заметки останутся без категории. Сами заметки не удаляются.</item>
+        <item quantity="many">%d заметок останутся без категории. Сами заметки не удаляются.</item>
+        <item quantity="other">%d заметки останутся без категории. Сами заметки не удаляются.</item>
+    </plurals>
+    <plurals name="category_note_count">
+        <item quantity="one">%d заметка</item>
+        <item quantity="few">%d заметки</item>
+        <item quantity="many">%d заметок</item>
+        <item quantity="other">%d заметки</item>
     </plurals>
 </resources>

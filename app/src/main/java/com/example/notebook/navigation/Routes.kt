@@ -10,8 +10,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object NotesRoute
 
-/** noteId == null means "create a new note". */
-@Serializable data class EditorRoute(val noteId: Long? = null)
+/**
+ * noteId == null means "create a new note"; [categoryId] then pre-selects its category
+ * (used when creating a note while a category filter is active).
+ */
+@Serializable data class EditorRoute(val noteId: Long? = null, val categoryId: Long? = null)
 
 @Serializable data object CategoriesRoute
 

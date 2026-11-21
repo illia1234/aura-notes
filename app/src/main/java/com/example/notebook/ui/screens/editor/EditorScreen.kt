@@ -1,6 +1,11 @@
 package com.example.notebook.ui.screens.editor
 
 import android.content.ClipData
+import androidx.compose.material.icons.automirrored.rounded.Label
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.notebook.ui.components.CategoryNameDialog
+import com.example.notebook.ui.components.CategoryPickerSheet
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -83,11 +88,20 @@ fun EditorScreen(
     onBack: () -> Unit,
     viewModel: EditorViewModel = viewModel {
         val container = appContainer()
-        EditorViewModel(createSavedStateHandle(), container.noteRepository, container.userMessenger, container.applicationScope)
+        EditorViewModel(
+            createSavedStateHandle(),
+            container.noteRepository,
+            container.categoryRepository,
+            container.userMessenger,
+            container.applicationScope,
+        )
     },
 ) {
     val storedNote by viewModel.storedNote.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
     var showColorSheet by rememberSaveable { mutableStateOf(false) }
+    var showCategorySheet by rememberSaveable { mutableStateOf(false) }
+    var showNewCategory by rememberSaveable { mutableStateOf(false) }
     var showInfo by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) { viewModel.closeEvents.collect { onBack() } }
@@ -134,6 +148,8 @@ fun EditorScreen(
             EditorBottomBar(
                 updatedAt = storedNote?.updatedAt,
                 onColorClick = { showColorSheet = true },
+                categoryName = categories.firstOrNull { it.id == viewModel.categoryId }?.name,
+                onCategoryClick = { showCategorySheet = true },
                 modifier = Modifier.navigationBarsPadding().imePadding(),
             )
         },
@@ -156,6 +172,31 @@ fun EditorScreen(
             selected = viewModel.color,
             onSelect = viewModel::changeColor,
             onDismiss = { showColorSheet = false },
+        )
+    }
+    if (showCategorySheet) {
+        CategoryPickerSheet(
+            categories = categories,
+            selectedId = viewModel.categoryId,
+            onSelect = { id ->
+                viewModel.changeCategory(id)
+                showCategorySheet = false
+            },
+            onCreateNew = {
+                showCategorySheet = false
+                showNewCategory = true
+            },
+            onDismiss = { showCategorySheet = false },
+        )
+    }
+    if (showNewCategory) {
+        CategoryNameDialog(
+            title = stringResource(R.string.category_new),
+            initialName = "",
+            confirmLabel = stringResource(R.string.category_create),
+            onSubmit = viewModel::createCategoryAndAssign,
+            onDone = { showNewCategory = false },
+            onDismiss = { showNewCategory = false },
         )
     }
     if (showInfo) {
@@ -303,7 +344,13 @@ private fun PlainField(
 }
 
 @Composable
-private fun EditorBottomBar(updatedAt: Long?, onColorClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun EditorBottomBar(
+    updatedAt: Long?,
+    onColorClick: () -> Unit,
+    categoryName: String?,
+    onCategoryClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -312,7 +359,25 @@ private fun EditorBottomBar(updatedAt: Long?, onColorClick: () -> Unit, modifier
         IconButton(onClick = onColorClick) {
             Icon(Icons.Rounded.Palette, contentDescription = stringResource(R.string.color))
         }
-        // The category button joins here in stage 5.
+        // Shows the category name, or just the label icon when the note has none.
+        TextButton(
+            onClick = onCategoryClick,
+            colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),
+            modifier = Modifier.weight(1f, fill = false),
+        ) {
+            Icon(
+                Icons.AutoMirrored.Rounded.Label,
+                contentDescription = if (categoryName == null) stringResource(R.string.category) else null,
+            )
+            if (categoryName != null) {
+                Text(
+                    text = categoryName,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+        }
         Spacer(Modifier.weight(1f))
         if (updatedAt != null) {
             CompositionLocalProvider(LocalContentColor provides LocalContentColor.current.copy(alpha = 0.75f)) {

@@ -1,6 +1,20 @@
 package com.example.notebook.ui.screens.notes
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.rounded.EditNote
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.notebook.domain.Category
+import com.example.notebook.ui.components.CategoryNameDialog
+import com.example.notebook.ui.components.CategoryPickerSheet
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -101,7 +115,7 @@ enum class DrawerDestination { Categories, Archive, Trash, Settings }
 @Composable
 fun NotesScreen(
     onOpenNote: (Long) -> Unit,
-    onCreateNote: () -> Unit,
+    onCreateNote: (categoryId: Long?) -> Unit,
     onDrawerDestination: (DrawerDestination) -> Unit,
     viewModel: NotesViewModel = viewModel {
         val c = appContainer()
@@ -122,6 +136,8 @@ fun NotesScreen(
     // Grid or list. Kept across rotation now; saved permanently in stage 6 (DataStore).
     var isGrid by rememberSaveable { mutableStateOf(true) }
     var showColorSheet by rememberSaveable { mutableStateOf(false) }
+    var showCategorySheet by rememberSaveable { mutableStateOf(false) }
+    var showNewCategory by rememberSaveable { mutableStateOf(false) }
     var fabExpanded by rememberSaveable { mutableStateOf(true) }
 
     // Snackbars, including ones sent by the editor after it closed.
@@ -157,9 +173,15 @@ fun NotesScreen(
         gesturesEnabled = !state.isSelecting,
         drawerContent = {
             NotesDrawer(
-                onSelect = { destination ->
+                categories = state.categories,
+                filterCategoryId = state.filterCategoryId,
+                onFilter = { categoryId ->
                     scope.launch { drawerState.close() }
-                    destination?.let(onDrawerDestination)
+                    viewModel.setFilter(categoryId)
+                },
+                onDestination = { destination ->
+                    scope.launch { drawerState.close() }
+                    onDrawerDestination(destination)
                 },
             )
         },
@@ -173,6 +195,7 @@ fun NotesScreen(
                         onClose = viewModel::clearSelection,
                         onTogglePin = viewModel::togglePinSelected,
                         onColor = { showColorSheet = true },
+                        onCategory = { showCategorySheet = true },
                         onArchive = viewModel::archiveSelected,
                         onDelete = viewModel::trashSelected,
                     )
@@ -193,7 +216,13 @@ fun NotesScreen(
                             SearchResults(search = search, onOpenNote = onOpenNote)
                         }
                         if (!searchExpanded) {
-                            FilterRow(sortOrder = sortOrder, onSortOrderChange = viewModel::setSortOrder)
+                            FilterRow(
+                                categories = state.categories,
+                                filterCategoryId = state.filterCategoryId,
+                                onFilterChange = viewModel::setFilter,
+                                sortOrder = sortOrder,
+                                onSortOrderChange = viewModel::setSortOrder,
+                            )
                         }
                     }
                 }
@@ -201,7 +230,9 @@ fun NotesScreen(
             floatingActionButton = {
                 if (!state.isSelecting && !searchExpanded) {
                     ExtendedFloatingActionButton(
-                        onClick = onCreateNote,
+                        // Inside a category filter the new note gets that category,
+                        // otherwise it would vanish from the current view once saved.
+                        onClick = { onCreateNote(state.filterCategoryId) },
                         expanded = fabExpanded,
                         icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
                         text = { Text(stringResource(R.string.new_note)) },
@@ -211,7 +242,7 @@ fun NotesScreen(
             snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { padding ->
             when {
-                state.isEmpty -> EmptyNotes(Modifier.padding(padding))
+                state.isEmpty -> EmptyNotes(filtered = state.filterCategoryId != null, Modifier.padding(padding))
                 else -> NotesGrid(
                     state = state,
                     isGrid = isGrid,
@@ -238,6 +269,33 @@ fun NotesScreen(
                 showColorSheet = false
             },
             onDismiss = { showColorSheet = false },
+        )
+    }
+    if (showCategorySheet) {
+        val current = state.selectedNotes.map { it.categoryId }.toSet()
+        CategoryPickerSheet(
+            categories = state.categories,
+            selectedId = current.singleOrNull(),
+            mixed = current.size > 1,
+            onSelect = { id ->
+                viewModel.setCategoryForSelected(id)
+                showCategorySheet = false
+            },
+            onCreateNew = {
+                showCategorySheet = false
+                showNewCategory = true
+            },
+            onDismiss = { showCategorySheet = false },
+        )
+    }
+    if (showNewCategory) {
+        CategoryNameDialog(
+            title = stringResource(R.string.category_new),
+            initialName = "",
+            confirmLabel = stringResource(R.string.category_create),
+            onSubmit = viewModel::createCategoryForSelected,
+            onDone = { showNewCategory = false },
+            onDismiss = { showNewCategory = false },
         )
     }
 }
@@ -307,21 +365,21 @@ private fun LazyStaggeredGridScope.noteItems(
 }
 
 @Composable
-private fun EmptyNotes(modifier: Modifier = Modifier) {
+private fun EmptyNotes(filtered: Boolean, modifier: Modifier = Modifier) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier.fillMaxSize().padding(32.dp),
     ) {
         Icon(
-            Icons.AutoMirrored.Rounded.StickyNote2,
+            if (filtered) Icons.AutoMirrored.Rounded.Label else Icons.AutoMirrored.Rounded.StickyNote2,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(64.dp),
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = stringResource(R.string.notes_empty),
+            text = stringResource(if (filtered) R.string.notes_empty_filter else R.string.notes_empty),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -352,43 +410,68 @@ private fun NotesSearchBar(
     // System "Back" closes the search first.
     BackHandler(enabled = expanded) { onExpandedChange(false) }
 
+    val searchHint = stringResource(R.string.search_hint)
+    val focusRequester = remember { FocusRequester() }
+    // Opening the search puts the cursor in the field and brings up the keyboard.
+    LaunchedEffect(expanded) { if (expanded) focusRequester.requestFocus() }
+
     SearchBar(
         inputField = {
-            SearchBarDefaults.InputField(
-                query = query,
-                onQueryChange = onQueryChange,
-                onSearch = { focusManager.clearFocus() },
-                expanded = expanded,
-                onExpandedChange = onExpandedChange,
-                placeholder = { Text(stringResource(R.string.search_hint)) },
-                leadingIcon = {
-                    if (expanded) {
-                        IconButton(onClick = { onExpandedChange(false) }) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
-                        }
-                    } else {
-                        IconButton(onClick = onMenuClick) {
-                            Icon(Icons.Rounded.Menu, contentDescription = stringResource(R.string.open_menu))
-                        }
-                    }
-                },
-                trailingIcon = {
-                    if (expanded) {
-                        if (query.isNotEmpty()) {
-                            IconButton(onClick = { onQueryChange("") }) {
-                                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.search_clear))
+            Box(Modifier.fillMaxWidth()) {
+                SearchBarDefaults.InputField(
+                    query = query,
+                    onQueryChange = onQueryChange,
+                    onSearch = { focusManager.clearFocus() },
+                    expanded = expanded,
+                    // Focus alone must not open the search: with a hardware keyboard Android
+                    // focuses the first field automatically, which would pop the search open.
+                    // Opening happens only through the tap target below.
+                    onExpandedChange = { if (!it) onExpandedChange(false) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester)
+                        .focusProperties { canFocus = expanded },
+                    placeholder = { Text(searchHint) },
+                    leadingIcon = {
+                        if (expanded) {
+                            IconButton(onClick = { onExpandedChange(false) }) {
+                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
+                            }
+                        } else {
+                            IconButton(onClick = onMenuClick) {
+                                Icon(Icons.Rounded.Menu, contentDescription = stringResource(R.string.open_menu))
                             }
                         }
-                    } else {
-                        IconButton(onClick = onToggleLayout) {
-                            Icon(
-                                imageVector = if (isGrid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
-                                contentDescription = stringResource(if (isGrid) R.string.show_as_list else R.string.show_as_grid),
-                            )
+                    },
+                    trailingIcon = {
+                        if (expanded) {
+                            if (query.isNotEmpty()) {
+                                IconButton(onClick = { onQueryChange("") }) {
+                                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.search_clear))
+                                }
+                            }
+                        } else {
+                            IconButton(onClick = onToggleLayout) {
+                                Icon(
+                                    imageVector = if (isGrid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
+                                    contentDescription = stringResource(if (isGrid) R.string.show_as_list else R.string.show_as_grid),
+                                )
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                )
+                if (!expanded) {
+                    // Tap target over the hint text (between the menu and layout buttons).
+                    // Also reachable with TalkBack and a keyboard, as a "Поиск в заметках" button.
+                    Box(
+                        Modifier
+                            .matchParentSize()
+                            .padding(horizontal = 56.dp)
+                            .clickable(onClickLabel = searchHint, role = Role.Button) { onExpandedChange(true) }
+                            .semantics { contentDescription = searchHint },
+                    )
+                }
+            }
         },
         expanded = expanded,
         onExpandedChange = onExpandedChange,
@@ -433,18 +516,41 @@ private fun SearchResults(search: SearchState, onOpenNote: (Long) -> Unit) {
 }
 
 /**
- * Row under the search bar: category chips (only "Все" until stage 5) that scroll sideways,
+ * Row under the search bar: "Все" and the category chips, scrolling sideways,
  * and the sort button at the end.
  */
 @Composable
-private fun FilterRow(sortOrder: SortOrder, onSortOrderChange: (SortOrder) -> Unit) {
+private fun FilterRow(
+    categories: List<Category>,
+    filterCategoryId: Long?,
+    onFilterChange: (Long?) -> Unit,
+    sortOrder: SortOrder,
+    onSortOrderChange: (SortOrder) -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
     ) {
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
-            item {
-                FilterChip(selected = true, onClick = {}, label = { Text(stringResource(R.string.filter_all)) })
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 8.dp),
+            modifier = Modifier.weight(1f),
+        ) {
+            item(key = "all") {
+                FilterChip(
+                    selected = filterCategoryId == null,
+                    onClick = { onFilterChange(null) },
+                    label = { Text(stringResource(R.string.filter_all)) },
+                )
+            }
+            items(categories, key = { it.id }) { category ->
+                val selected = filterCategoryId == category.id
+                FilterChip(
+                    selected = selected,
+                    // Tapping the active chip again goes back to "Все".
+                    onClick = { onFilterChange(if (selected) null else category.id) },
+                    label = { Text(category.name, maxLines = 1) },
+                )
             }
         }
         SortButton(current = sortOrder, onSelect = onSortOrderChange)
@@ -490,6 +596,7 @@ private fun SelectionTopBar(
     onClose: () -> Unit,
     onTogglePin: () -> Unit,
     onColor: () -> Unit,
+    onCategory: () -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -510,6 +617,9 @@ private fun SelectionTopBar(
             IconButton(onClick = onColor) {
                 Icon(Icons.Rounded.Palette, contentDescription = stringResource(R.string.color))
             }
+            IconButton(onClick = onCategory) {
+                Icon(Icons.AutoMirrored.Rounded.Label, contentDescription = stringResource(R.string.category))
+            }
             IconButton(onClick = onArchive) {
                 Icon(Icons.Rounded.Archive, contentDescription = stringResource(R.string.archive))
             }
@@ -520,29 +630,63 @@ private fun SelectionTopBar(
     )
 }
 
+/**
+ * Side menu (spec): "Заметки", categories with note counts, "Управление категориями",
+ * "Архив", "Корзина", "Настройки". Tapping a category filters the main screen.
+ */
 @Composable
-private fun NotesDrawer(onSelect: (DrawerDestination?) -> Unit) {
+private fun NotesDrawer(
+    categories: List<Category>,
+    filterCategoryId: Long?,
+    onFilter: (Long?) -> Unit,
+    onDestination: (DrawerDestination) -> Unit,
+) {
     ModalDrawerSheet {
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = 28.dp, vertical = 16.dp),
-        )
-        DrawerItem(Icons.AutoMirrored.Rounded.StickyNote2, R.string.nav_notes, selected = true) { onSelect(null) }
-        HorizontalDivider(Modifier.padding(horizontal = 28.dp, vertical = 8.dp))
-        DrawerItem(Icons.AutoMirrored.Rounded.Label, R.string.nav_manage_categories) { onSelect(DrawerDestination.Categories) }
-        DrawerItem(Icons.Rounded.Archive, R.string.nav_archive) { onSelect(DrawerDestination.Archive) }
-        DrawerItem(Icons.Rounded.Delete, R.string.nav_trash) { onSelect(DrawerDestination.Trash) }
-        DrawerItem(Icons.Rounded.Settings, R.string.nav_settings) { onSelect(DrawerDestination.Settings) }
+        // Many categories must not push "Настройки" off screen, so the menu scrolls.
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 16.dp),
+            )
+            DrawerItem(
+                icon = Icons.AutoMirrored.Rounded.StickyNote2,
+                label = stringResource(R.string.nav_notes),
+                selected = filterCategoryId == null,
+            ) { onFilter(null) }
+            categories.forEach { category ->
+                DrawerItem(
+                    icon = Icons.AutoMirrored.Rounded.Label,
+                    label = category.name,
+                    selected = filterCategoryId == category.id,
+                    badge = category.noteCount.toString(),
+                ) { onFilter(category.id) }
+            }
+            HorizontalDivider(Modifier.padding(horizontal = 28.dp, vertical = 8.dp))
+            DrawerItem(Icons.Rounded.EditNote, stringResource(R.string.nav_manage_categories)) {
+                onDestination(DrawerDestination.Categories)
+            }
+            DrawerItem(Icons.Rounded.Archive, stringResource(R.string.nav_archive)) { onDestination(DrawerDestination.Archive) }
+            DrawerItem(Icons.Rounded.Delete, stringResource(R.string.nav_trash)) { onDestination(DrawerDestination.Trash) }
+            DrawerItem(Icons.Rounded.Settings, stringResource(R.string.nav_settings)) { onDestination(DrawerDestination.Settings) }
+            Spacer(Modifier.height(12.dp))
+        }
     }
 }
 
 @Composable
-private fun DrawerItem(icon: ImageVector, labelRes: Int, selected: Boolean = false, onClick: () -> Unit) {
+private fun DrawerItem(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean = false,
+    badge: String? = null,
+    onClick: () -> Unit,
+) {
     NavigationDrawerItem(
         icon = { Icon(icon, contentDescription = null) },
-        label = { Text(stringResource(labelRes)) },
+        label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        badge = badge?.let { { Text(it) } },
         selected = selected,
         onClick = onClick,
         modifier = Modifier.padding(horizontal = 12.dp),

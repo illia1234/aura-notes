@@ -7,7 +7,9 @@ import androidx.lifecycle.ViewModelStore
 import com.example.notebook.data.FakeClock
 import com.example.notebook.data.database.NotebookDatabase
 import com.example.notebook.data.inMemoryDatabase
+import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
+import com.example.notebook.domain.CategoryResult
 import com.example.notebook.domain.NoteColor
 import com.example.notebook.domain.SortOrder
 import com.example.notebook.ui.screens.editor.EditorViewModel
@@ -40,6 +42,7 @@ class EditorViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: NotebookDatabase
     private lateinit var notes: NoteRepository
+    private lateinit var categories: CategoryRepository
     private lateinit var messenger: UserMessenger
     private lateinit var appScope: CoroutineScope
     private val store = ViewModelStore()
@@ -49,6 +52,7 @@ class EditorViewModelTest {
         Dispatchers.setMain(dispatcher)
         db = inMemoryDatabase()
         notes = NoteRepository(db.noteDao(), FakeClock().function)
+        categories = CategoryRepository(db)
         messenger = UserMessenger()
         appScope = CoroutineScope(SupervisorJob() + dispatcher)
     }
@@ -60,12 +64,15 @@ class EditorViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun editor(noteId: Long? = null): EditorViewModel {
-        val args = if (noteId == null) emptyMap() else mapOf("noteId" to noteId)
+    private fun editor(noteId: Long? = null, categoryId: Long? = null): EditorViewModel {
+        val args = buildMap<String, Any> {
+            noteId?.let { put("noteId", it) }
+            categoryId?.let { put("categoryId", it) }
+        }
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                EditorViewModel(SavedStateHandle(args), notes, messenger, appScope) as T
+                EditorViewModel(SavedStateHandle(args), notes, categories, messenger, appScope) as T
         }
         return ViewModelProvider(store, factory)[EditorViewModel::class.java]
     }
@@ -165,6 +172,44 @@ class EditorViewModelTest {
         close()
         settle()
         assertEquals(before, notes.getNote(id)!!.updatedAt)
+    }
+
+    @Test
+    fun newNoteFromCategoryFilterGetsThatCategory() = runTest(dispatcher) {
+        val work = (categories.createCategory("Работа") as CategoryResult.Success).id
+        val vm = editor(categoryId = work)
+        settle()
+        vm.onContentChange("отчёт")
+        settle()
+        assertEquals(work, allNotes().single().categoryId)
+    }
+
+    @Test
+    fun changingCategoryOfExistingNoteIsSaved() = runTest(dispatcher) {
+        val id = notes.createNote("t", "c")
+        val vm = editor(id)
+        settle()
+        val result = vm.createCategoryAndAssign("Дом")
+        settle()
+        val home = (result as CategoryResult.Success).id
+        assertEquals(home, notes.getNote(id)!!.categoryId)
+
+        vm.changeCategory(null)
+        settle()
+        assertEquals(null, notes.getNote(id)!!.categoryId)
+    }
+
+    @Test
+    fun categoryDeletedBeforeFirstSaveDoesNotLoseText() = runTest(dispatcher) {
+        val temp = (categories.createCategory("Временная") as CategoryResult.Success).id
+        val vm = editor(categoryId = temp)
+        settle()
+        categories.deleteCategory(temp)
+        vm.onContentChange("важный текст")
+        settle()
+        val note = allNotes().single()
+        assertEquals("важный текст", note.content)
+        assertEquals(null, note.categoryId)
     }
 
     @Test

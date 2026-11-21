@@ -1,5 +1,6 @@
 package com.example.notebook.ui.screens.editor
 
+import android.database.sqlite.SQLiteConstraintException
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -7,7 +8,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
+import com.example.notebook.domain.Category
+import com.example.notebook.domain.CategoryResult
 import com.example.notebook.domain.Note
 import com.example.notebook.domain.NoteColor
 import com.example.notebook.navigation.EditorRoute
@@ -45,6 +49,7 @@ import kotlinx.coroutines.sync.withLock
 class EditorViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val notes: NoteRepository,
+    private val categoryRepository: CategoryRepository,
     private val messenger: UserMessenger,
     private val appScope: CoroutineScope,
 ) : ViewModel() {
@@ -73,6 +78,14 @@ class EditorViewModel(
         private set
     var isPinned by mutableStateOf(false)
         private set
+
+    /** For a new note, starts with the category of the filter it was created from. */
+    var categoryId by mutableStateOf(route.categoryId)
+        private set
+
+    /** All categories, for the picker and for the name on the bottom-bar button. */
+    val categories: StateFlow<List<Category>> = categoryRepository.observeCategories()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** False until an existing note is read from the database; nothing is saved before that. */
     var isLoaded by mutableStateOf(isNewNote && noteIdFlow.value == null)
@@ -108,6 +121,7 @@ class EditorViewModel(
                 content = note.content
                 color = note.color
                 isPinned = note.isPinned
+                categoryId = note.categoryId
                 isLoaded = true
             }
         }
@@ -141,7 +155,13 @@ class EditorViewModel(
         val id = noteId
         if (id == null) {
             if (currentTitle.isBlank() && currentContent.isBlank()) return@withLock
-            val newId = notes.createNote(currentTitle, currentContent, color)
+            val newId = try {
+                notes.createNote(currentTitle, currentContent, color, categoryId)
+            } catch (e: SQLiteConstraintException) {
+                // The chosen category was deleted meanwhile: keep the text, drop the category.
+                categoryId = null
+                notes.createNote(currentTitle, currentContent, color)
+            }
             if (isPinned) notes.setPinned(listOf(newId), true)
             noteId = newId
         } else {
@@ -166,6 +186,19 @@ class EditorViewModel(
         color = newColor
         val id = noteId ?: return
         appScope.launch { notes.setColor(listOf(id), newColor) }
+    }
+
+    fun changeCategory(newCategoryId: Long?) {
+        categoryId = newCategoryId
+        val id = noteId ?: return
+        appScope.launch { notes.setCategory(listOf(id), newCategoryId) }
+    }
+
+    /** "+ Новая категория" in the picker: create it and put this note in it. */
+    suspend fun createCategoryAndAssign(name: String): CategoryResult {
+        val result = categoryRepository.createCategory(name)
+        if (result is CategoryResult.Success) changeCategory(result.id)
+        return result
     }
 
     fun archive() = finishWith { id ->
