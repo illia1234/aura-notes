@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">Notebook</string>
+
+    <!-- Navigation drawer -->
+    <string name="nav_notes">Заметки</string>
+    <string name="nav_manage_categories">Управление категориями</string>
+    <string name="nav_archive">Архив</string>
+    <string name="nav_trash">Корзина</string>
+    <string name="nav_settings">Настройки</string>
+
+    <!-- Main screen -->
+    <string name="search_hint">Поиск в заметках</string>
+    <string name="open_menu">Открыть меню</string>
+    <string name="toggle_layout">Список или сетка</string>
+    <string name="new_note">Заметка</string>
+    <string name="stub_palette_title">Палитра цветов заметок (заглушка этапа 1)</string>
+
+    <!-- Common -->
+    <string name="back">Назад</string>
+    <string name="stub_body">Экран появится на одном из следующих этапов.</string>
+
+    <!-- Editor -->
+    <string name="editor_new">Новая заметка</string>
+    <string name="editor_existing">Заметка #%1$d</string>
+    <string name="pin">Закрепить</string>
+    <string name="archive">В архив</string>
+
+    <!-- Search -->
+    <string name="search_title">Поиск</string>
+
+    <!-- Settings -->
+    <string name="settings_theme">Тема</string>
+    <string name="theme_system">Как в системе</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="settings_dynamic_color">Динамические цвета</string>
+    <string name="settings_dynamic_color_hint">Цвета из обоев (Android 12+)</string>
+    <string name="settings_not_saved_yet">Пока настройки сбрасываются после перезапуска. Сохранение появится на этапе 6.</string>
+
+    <!-- Note colors -->
+    <string name="color_default">Без цвета</string>
+    <string name="color_coral">Коралловый</string>
+    <string name="color_peach">Персиковый</string>
+    <string name="color_sand">Песочный</string>
+    <string name="color_mint">Мятный</string>
+    <string name="color_sage">Шалфей</string>
+    <string name="color_fog">Туманный</string>
+    <string name="color_storm">Грозовой</string>
+    <string name="color_dusk">Сиреневый</string>
+</resources>
