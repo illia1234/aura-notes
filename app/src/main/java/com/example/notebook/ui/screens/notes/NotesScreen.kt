@@ -1,33 +1,41 @@
 package com.example.notebook.ui.screens.notes
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridScope
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Label
+import androidx.compose.material.icons.automirrored.rounded.StickyNote2
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Archive
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.rounded.Menu
-import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.automirrored.rounded.StickyNote2
+import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,22 +45,42 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.notebook.R
 import com.example.notebook.domain.NoteColor
-import com.example.notebook.ui.theme.containerColor
-import com.example.notebook.ui.theme.contentColor
-import com.example.notebook.ui.theme.hasOutline
+import com.example.notebook.ui.appContainer
+import com.example.notebook.ui.components.NoteCard
+import com.example.notebook.ui.components.NoteColorSheet
 import kotlinx.coroutines.launch
 
 /** Screens reachable from the side menu (except "Notes", which is this screen). */
@@ -64,15 +92,54 @@ fun NotesScreen(
     onCreateNote: () -> Unit,
     onOpenSearch: () -> Unit,
     onDrawerDestination: (DrawerDestination) -> Unit,
+    viewModel: NotesViewModel = viewModel {
+        val c = appContainer()
+        NotesViewModel(c.noteRepository, c.categoryRepository, c.userMessenger, c.applicationScope)
+    },
 ) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val resources = LocalContext.current.resources
+    val haptics = LocalHapticFeedback.current
 
-    // System "Back" closes the open drawer first instead of leaving the app.
+    // Grid or list. Kept across rotation now; saved permanently in stage 6 (DataStore).
+    var isGrid by rememberSaveable { mutableStateOf(true) }
+    var showColorSheet by rememberSaveable { mutableStateOf(false) }
+    var fabExpanded by rememberSaveable { mutableStateOf(true) }
+
+    // Snackbars, including ones sent by the editor after it closed.
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { message ->
+            val label = message.actionLabel?.invoke(resources)
+            val result = snackbarHostState.showSnackbar(
+                message = message.text(resources),
+                actionLabel = label,
+                withDismissAction = false,
+                duration = if (label != null) SnackbarDuration.Long else SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed) viewModel.runMessageAction(message)
+        }
+    }
+
+    // System "Back": close the drawer first, then leave selection mode, then exit.
     BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
+    BackHandler(enabled = state.isSelecting && !drawerState.isOpen) { viewModel.clearSelection() }
+
+    // FAB shrinks to "+" while scrolling down and expands again when scrolling up.
+    val fabScroll = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -1f) fabExpanded = false else if (available.y > 1f) fabExpanded = true
+                return Offset.Zero
+            }
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = !state.isSelecting,
         drawerContent = {
             NotesDrawer(
                 onSelect = { destination ->
@@ -84,30 +151,167 @@ fun NotesScreen(
     ) {
         Scaffold(
             topBar = {
-                SearchPill(
-                    onMenuClick = { scope.launch { drawerState.open() } },
-                    onSearchClick = onOpenSearch,
-                )
+                if (state.isSelecting) {
+                    SelectionTopBar(
+                        count = state.selectedIds.size,
+                        allPinned = state.selectedNotes.all { it.isPinned },
+                        onClose = viewModel::clearSelection,
+                        onTogglePin = viewModel::togglePinSelected,
+                        onColor = { showColorSheet = true },
+                        onArchive = viewModel::archiveSelected,
+                        onDelete = viewModel::trashSelected,
+                    )
+                } else {
+                    SearchPill(
+                        isGrid = isGrid,
+                        onMenuClick = { scope.launch { drawerState.open() } },
+                        onSearchClick = onOpenSearch,
+                        onToggleLayout = { isGrid = !isGrid },
+                    )
+                }
             },
             floatingActionButton = {
-                ExtendedFloatingActionButton(
-                    onClick = onCreateNote,
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.new_note)) },
-                )
+                if (!state.isSelecting) {
+                    ExtendedFloatingActionButton(
+                        onClick = onCreateNote,
+                        expanded = fabExpanded,
+                        icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                        text = { Text(stringResource(R.string.new_note)) },
+                    )
+                }
             },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { padding ->
-            PalettePreviewGrid(contentPadding = padding, onOpenNote = onOpenNote)
+            when {
+                state.isEmpty -> EmptyNotes(Modifier.padding(padding))
+                else -> NotesGrid(
+                    state = state,
+                    isGrid = isGrid,
+                    contentPadding = padding,
+                    onClick = { id ->
+                        if (state.isSelecting) viewModel.toggleSelection(id) else onOpenNote(id)
+                    },
+                    onLongClick = { id ->
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.toggleSelection(id)
+                    },
+                    modifier = Modifier.nestedScroll(fabScroll),
+                )
+            }
         }
+    }
+
+    if (showColorSheet) {
+        val colors = state.selectedNotes.map { it.color }.toSet()
+        NoteColorSheet(
+            selected = colors.singleOrNull(),
+            onSelect = { color: NoteColor ->
+                viewModel.setColorForSelected(color)
+                showColorSheet = false
+            },
+            onDismiss = { showColorSheet = false },
+        )
+    }
+}
+
+@Composable
+private fun NotesGrid(
+    state: NotesUiState,
+    isGrid: Boolean,
+    contentPadding: PaddingValues,
+    onClick: (Long) -> Unit,
+    onLongClick: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gridState = rememberLazyStaggeredGridState()
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Fixed(if (isGrid) 2 else 1),
+        state = gridState,
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = contentPadding.calculateTopPadding() + 4.dp,
+            // Extra space so the last card is never hidden under the FAB.
+            bottom = contentPadding.calculateBottomPadding() + 88.dp,
+        ),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalItemSpacing = 8.dp,
+        modifier = modifier.fillMaxSize(),
+    ) {
+        val maxLines = if (isGrid) 6 else 3
+        if (state.showSections) sectionHeader("pinned_header", R.string.notes_pinned)
+        noteItems(state.pinned, state.selectedIds, maxLines, onClick, onLongClick)
+        if (state.showSections && state.others.isNotEmpty()) sectionHeader("others_header", R.string.notes_others)
+        noteItems(state.others, state.selectedIds, maxLines, onClick, onLongClick)
+    }
+}
+
+private fun LazyStaggeredGridScope.sectionHeader(key: String, textRes: Int) {
+    item(key = key, span = StaggeredGridItemSpan.FullLine) {
+        Text(
+            text = stringResource(textRes),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.animateItem().padding(start = 4.dp, top = 8.dp, bottom = 4.dp),
+        )
+    }
+}
+
+private fun LazyStaggeredGridScope.noteItems(
+    items: List<NoteItem>,
+    selectedIds: Set<Long>,
+    maxLines: Int,
+    onClick: (Long) -> Unit,
+    onLongClick: (Long) -> Unit,
+) {
+    // Keys = note ids, so animateItem() can move a card (e.g. into "Закреплённые") smoothly.
+    items(items, key = { it.note.id }) { item ->
+        NoteCard(
+            note = item.note,
+            categoryName = item.categoryName,
+            maxContentLines = maxLines,
+            isSelected = item.note.id in selectedIds,
+            onClick = { onClick(item.note.id) },
+            onLongClick = { onLongClick(item.note.id) },
+            modifier = Modifier.animateItem(),
+        )
+    }
+}
+
+@Composable
+private fun EmptyNotes(modifier: Modifier = Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier.fillMaxSize().padding(32.dp),
+    ) {
+        Icon(
+            Icons.AutoMirrored.Rounded.StickyNote2,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(64.dp),
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.notes_empty),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
 /**
- * Stage 1 placeholder for the search bar: a pill that opens the search screen.
+ * Stage 3 placeholder for the search bar: a pill that opens the search screen.
  * The real M3 SearchBar with its expand animation comes in stage 4.
  */
 @Composable
-private fun SearchPill(onMenuClick: () -> Unit, onSearchClick: () -> Unit) {
+private fun SearchPill(
+    isGrid: Boolean,
+    onMenuClick: () -> Unit,
+    onSearchClick: () -> Unit,
+    onToggleLayout: () -> Unit,
+) {
     Surface(
         onClick = onSearchClick,
         shape = CircleShape,
@@ -128,11 +332,52 @@ private fun SearchPill(onMenuClick: () -> Unit, onSearchClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = { /* list/grid toggle arrives in stage 3 */ }) {
-                Icon(Icons.Rounded.GridView, contentDescription = stringResource(R.string.toggle_layout))
+            IconButton(onClick = onToggleLayout) {
+                Icon(
+                    imageVector = if (isGrid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
+                    contentDescription = stringResource(if (isGrid) R.string.show_as_list else R.string.show_as_grid),
+                )
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionTopBar(
+    count: Int,
+    allPinned: Boolean,
+    onClose: () -> Unit,
+    onTogglePin: () -> Unit,
+    onColor: () -> Unit,
+    onArchive: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    TopAppBar(
+        navigationIcon = {
+            IconButton(onClick = onClose) {
+                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.selection_clear))
+            }
+        },
+        title = { Text(count.toString()) },
+        actions = {
+            IconButton(onClick = onTogglePin) {
+                Icon(
+                    imageVector = if (allPinned) Icons.Rounded.PushPin else Icons.Outlined.PushPin,
+                    contentDescription = stringResource(if (allPinned) R.string.unpin else R.string.pin),
+                )
+            }
+            IconButton(onClick = onColor) {
+                Icon(Icons.Rounded.Palette, contentDescription = stringResource(R.string.color))
+            }
+            IconButton(onClick = onArchive) {
+                Icon(Icons.Rounded.Archive, contentDescription = stringResource(R.string.archive))
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.delete))
+            }
+        },
+    )
 }
 
 @Composable
@@ -162,77 +407,4 @@ private fun DrawerItem(icon: ImageVector, labelRes: Int, selected: Boolean = fal
         onClick = onClick,
         modifier = Modifier.padding(horizontal = 12.dp),
     )
-}
-
-/**
- * Stage 1 placeholder content: one card per note color, so the palette can be checked
- * on the real screen in both themes. Replaced by real notes in stage 3.
- */
-@Composable
-private fun PalettePreviewGrid(contentPadding: PaddingValues, onOpenNote: (Long) -> Unit) {
-    LazyVerticalStaggeredGrid(
-        columns = StaggeredGridCells.Fixed(2),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = contentPadding.calculateTopPadding() + 8.dp,
-            // Extra space so the last card is never hidden under the FAB.
-            bottom = contentPadding.calculateBottomPadding() + 88.dp,
-        ),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalItemSpacing = 8.dp,
-    ) {
-        item(span = StaggeredGridItemSpan.FullLine) {
-            Text(
-                text = stringResource(R.string.stub_palette_title),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(4.dp),
-            )
-        }
-        items(NoteColor.entries, key = { it.name }) { color ->
-            PaletteCard(color = color, lines = 1 + color.ordinal % 4, onClick = { onOpenNote(color.ordinal.toLong()) })
-        }
-    }
-}
-
-@Composable
-private fun PaletteCard(color: NoteColor, lines: Int, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = color.containerColor(),
-        contentColor = color.contentColor(),
-        border = if (color.hasOutline) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
-    ) {
-        Column(Modifier.padding(16.dp).fillMaxWidth()) {
-            Text(
-                text = stringResource(color.labelRes()),
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = List(lines) { "Пример текста заметки, чтобы оценить читаемость." }.joinToString(" "),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 6,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(text = "14:05", style = MaterialTheme.typography.labelSmall)
-        }
-    }
-}
-
-fun NoteColor.labelRes(): Int = when (this) {
-    NoteColor.DEFAULT -> R.string.color_default
-    NoteColor.CORAL -> R.string.color_coral
-    NoteColor.PEACH -> R.string.color_peach
-    NoteColor.SAND -> R.string.color_sand
-    NoteColor.MINT -> R.string.color_mint
-    NoteColor.SAGE -> R.string.color_sage
-    NoteColor.FOG -> R.string.color_fog
-    NoteColor.STORM -> R.string.color_storm
-    NoteColor.DUSK -> R.string.color_dusk
 }

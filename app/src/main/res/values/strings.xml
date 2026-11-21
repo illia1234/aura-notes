@@ -11,19 +11,44 @@
     <!-- Main screen -->
     <string name="search_hint">Поиск в заметках</string>
     <string name="open_menu">Открыть меню</string>
-    <string name="toggle_layout">Список или сетка</string>
+    <string name="show_as_list">Показать списком</string>
+    <string name="show_as_grid">Показать сеткой</string>
     <string name="new_note">Заметка</string>
-    <string name="stub_palette_title">Палитра цветов заметок (заглушка этапа 1)</string>
+    <string name="notes_pinned">Закреплённые</string>
+    <string name="notes_others">Другие</string>
+    <string name="notes_empty">Заметок пока нет.\nНажмите «+», чтобы создать</string>
+    <string name="note_is_pinned">Закреплена</string>
+    <string name="selection_clear">Отменить выбор</string>
+
+    <!-- Note actions -->
+    <string name="pin">Закрепить</string>
+    <string name="unpin">Открепить</string>
+    <string name="archive">В архив</string>
+    <string name="delete">Удалить</string>
+    <string name="color">Цвет</string>
+    <string name="note_color_title">Цвет заметки</string>
+    <string name="undo">Отменить</string>
+    <string name="note_trashed">Заметка в корзине</string>
+    <string name="note_archived">Заметка в архиве</string>
+    <string name="empty_note_discarded">Пустая заметка удалена</string>
 
     <!-- Common -->
     <string name="back">Назад</string>
+    <string name="close">Закрыть</string>
+    <string name="more_options">Ещё</string>
     <string name="stub_body">Экран появится на одном из следующих этапов.</string>
+    <string name="date_yesterday">вчера</string>
 
     <!-- Editor -->
-    <string name="editor_new">Новая заметка</string>
-    <string name="editor_existing">Заметка #%1$d</string>
-    <string name="pin">Закрепить</string>
-    <string name="archive">В архив</string>
+    <string name="editor_title_hint">Заголовок</string>
+    <string name="editor_content_hint">Заметка</string>
+    <string name="editor_edited">Изменено %1$s</string>
+    <string name="copy">Копировать</string>
+    <string name="copied">Скопировано</string>
+    <string name="share">Поделиться</string>
+    <string name="info">Информация</string>
+    <string name="info_created">Создана: %1$s</string>
+    <string name="info_updated">Изменена: %1$s</string>
 
     <!-- Search -->
     <string name="search_title">Поиск</string>
@@ -47,4 +72,18 @@
     <string name="color_fog">Туманный</string>
     <string name="color_storm">Грозовой</string>
     <string name="color_dusk">Сиреневый</string>
+
+    <!-- Counts: Russian needs one / few / many forms -->
+    <plurals name="notes_trashed">
+        <item quantity="one">%d заметка в корзине</item>
+        <item quantity="few">%d заметки в корзине</item>
+        <item quantity="many">%d заметок в корзине</item>
+        <item quantity="other">%d заметки в корзине</item>
+    </plurals>
+    <plurals name="notes_archived">
+        <item quantity="one">%d заметка в архиве</item>
+        <item quantity="few">%d заметки в архиве</item>
+        <item quantity="many">%d заметок в архиве</item>
+        <item quantity="other">%d заметки в архиве</item>
+    </plurals>
 </resources>
