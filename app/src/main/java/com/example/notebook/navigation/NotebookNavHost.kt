@@ -1,5 +1,10 @@
 package com.example.notebook.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavHostController
@@ -19,7 +24,17 @@ import com.example.notebook.ui.screens.settings.SettingsScreen
 fun NotebookNavHost(navController: NavHostController = rememberNavController()) {
     val openNote: (Long) -> Unit = { id -> navController.navigate(EditorRoute(noteId = id)) { launchSingleTop = true } }
 
-    NavHost(navController = navController, startDestination = NotesRoute) {
+    // Screen transitions: short fade + slight slide, 250 ms with standard M3 easing
+    // (the spec's fallback for the card-to-editor animation). Compose follows the
+    // system "animation scale" setting, so turning animations off disables these too.
+    NavHost(
+        navController = navController,
+        startDestination = NotesRoute,
+        enterTransition = { fadeIn(tween(ENTER_MS)) + slideInHorizontally(tween(ENTER_MS)) { it / SLIDE_FRACTION } },
+        exitTransition = { fadeOut(tween(EXIT_MS)) },
+        popEnterTransition = { fadeIn(tween(ENTER_MS)) },
+        popExitTransition = { fadeOut(tween(EXIT_MS)) + slideOutHorizontally(tween(ENTER_MS)) { it / SLIDE_FRACTION } },
+    ) {
         composable<NotesRoute> {
             // launchSingleTop: a quick double tap cannot open the editor twice.
             NotesScreen(
@@ -49,3 +64,9 @@ fun NotebookNavHost(navController: NavHostController = rememberNavController()) 
         composable<SettingsRoute> { SettingsScreen(onBack = dropUnlessResumed { navController.popBackStack() }) }
     }
 }
+
+private const val ENTER_MS = 250
+private const val EXIT_MS = 200
+
+/** The new screen slides in from 1/10 of the width: noticeable but calm. */
+private const val SLIDE_FRACTION = 10

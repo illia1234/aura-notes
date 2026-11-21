@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -129,7 +130,9 @@ private fun NoteCardFooter(categoryName: String?, updatedAt: Long) {
             }
         }
         Text(
-            text = formatShortDate(context, updatedAt),
+            // Formatting a date is relatively expensive; remember it so scrolling a long
+            // list does not redo it for every frame.
+            text = remember(updatedAt) { formatShortDate(context, updatedAt) },
             style = MaterialTheme.typography.labelSmall,
             color = muted,
             maxLines = 1,

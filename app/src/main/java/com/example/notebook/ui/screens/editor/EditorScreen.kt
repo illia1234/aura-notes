@@ -341,7 +341,16 @@ private fun EditorFields(
     ) {
         PlainField(
             value = title,
-            onValueChange = onTitleChange,
+            // The title wraps onto several lines but never contains line breaks:
+            // Enter (or Tab) jumps to the text instead, like "Далее" in the spec.
+            onValueChange = { value ->
+                if (value.any { it == '\n' || it == '\t' }) {
+                    onTitleChange(value.filterNot { it == '\n' || it == '\t' })
+                    contentFocus.requestFocus()
+                } else {
+                    onTitleChange(value)
+                }
+            },
             placeholder = stringResource(R.string.editor_title_hint),
             style = titleStyle,
             cursorColor = textColor,

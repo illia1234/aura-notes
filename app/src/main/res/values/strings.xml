@@ -105,6 +105,16 @@
     <string name="text_size_medium">Средний</string>
     <string name="text_size_large">Крупный</string>
     <string name="settings_about">О приложении</string>
+    <string name="backup_section">Резервная копия</string>
+    <string name="backup_export">Экспорт заметок</string>
+    <string name="backup_export_hint">Сохранить все заметки и категории в файл JSON</string>
+    <string name="backup_import">Импорт заметок</string>
+    <string name="backup_import_hint">Добавить заметки из файла. Существующие не удаляются</string>
+    <string name="backup_export_done">Экспортировано заметок: %1$d</string>
+    <string name="backup_import_done">Добавлено %1$d, обновлено %2$d, пропущено %3$d</string>
+    <string name="backup_error_not_backup">Этот файл не похож на резервную копию Notebook. Ничего не изменено</string>
+    <string name="backup_error_newer">Файл создан более новой версией Notebook. Обновите приложение</string>
+    <string name="backup_error_io">Не удалось прочитать или сохранить файл</string>
     <string name="settings_version">Версия</string>
 
     <!-- Note colors -->

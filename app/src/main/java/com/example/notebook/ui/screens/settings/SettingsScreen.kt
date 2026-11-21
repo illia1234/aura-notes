@@ -2,6 +2,20 @@ package com.example.notebook.ui.screens.settings
 
 import android.content.Context
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Upload
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -43,11 +57,30 @@ import com.example.notebook.ui.components.labelRes
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    viewModel: SettingsViewModel = viewModel { SettingsViewModel(appContainer().settingsRepository) },
+    viewModel: SettingsViewModel = viewModel {
+        val c = appContainer()
+        SettingsViewModel(c.settingsRepository, c.backupRepository, c.userMessenger, c.applicationScope)
+    },
 ) {
     val settings = LocalAppSettings.current
     val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // System file dialogs (Storage Access Framework): the user picks where to save / what to open.
+    // No storage permission is needed, the app only gets access to that one file.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri -> uri?.let(viewModel::export) }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let(viewModel::import) }
+
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { message ->
+            snackbarHostState.showSnackbar(message.text(context.resources), duration = SnackbarDuration.Long)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -57,6 +90,7 @@ fun SettingsScreen(
                 scrollBehavior = scrollBehavior,
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { padding ->
         Column(
@@ -112,6 +146,27 @@ fun SettingsScreen(
                 selected = settings.editorTextSize,
                 label = { stringResource(it.labelRes()) },
                 onSelect = viewModel::setEditorTextSize,
+            )
+
+            Divider()
+            SectionTitle(stringResource(R.string.backup_section))
+            if (viewModel.isBusy) LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.backup_export)) },
+                supportingContent = { Text(stringResource(R.string.backup_export_hint)) },
+                leadingContent = { Icon(Icons.Rounded.Upload, contentDescription = null) },
+                modifier = Modifier.clickable(enabled = !viewModel.isBusy) {
+                    exportLauncher.launch(viewModel.suggestedFileName())
+                },
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.backup_import)) },
+                supportingContent = { Text(stringResource(R.string.backup_import_hint)) },
+                leadingContent = { Icon(Icons.Rounded.Download, contentDescription = null) },
+                modifier = Modifier.clickable(enabled = !viewModel.isBusy) {
+                    // Some file managers label .json files as plain text or as generic binary.
+                    importLauncher.launch(arrayOf("application/json", "text/*", "application/octet-stream"))
+                },
             )
 
             Divider()

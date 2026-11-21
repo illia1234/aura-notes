@@ -1,6 +1,7 @@
 package com.example.notebook
 
 import android.content.Context
+import com.example.notebook.data.backup.BackupRepository
 import com.example.notebook.data.database.NotebookDatabase
 import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
@@ -33,6 +34,8 @@ class AppContainer(context: Context) {
     val categoryRepository: CategoryRepository by lazy { CategoryRepository(database) }
 
     val userMessenger = UserMessenger()
+
+    val backupRepository: BackupRepository by lazy { BackupRepository(database, context.contentResolver) }
 
     /** One DataStore per file for the whole app (DataStore requires a single instance). */
     val settingsRepository: SettingsRepository by lazy {

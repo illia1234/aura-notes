@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Debug builds have their own name on the home screen, next to the real "Notebook". -->
+    <string name="app_name">Notebook Debug</string>
+</resources>

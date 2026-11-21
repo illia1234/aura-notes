@@ -1,13 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android Auto Backup for Android 11 and older (Android 12+ uses data_extraction_rules.xml).
+  The system copies these files to the user's Google account backup automatically;
+  the app itself needs no network or account code.
+  Backed up: the notes database and the settings file.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <include domain="database" path="notebook.db" />
+    <include domain="database" path="notebook.db-wal" />
+    <include domain="file" path="datastore/settings.preferences_pb" />
 </full-backup-content>
