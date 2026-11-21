@@ -51,7 +51,14 @@
     <string name="info_updated">Изменена: %1$s</string>
 
     <!-- Search -->
-    <string name="search_title">Поиск</string>
+    <string name="search_clear">Очистить</string>
+    <string name="search_nothing_found">Ничего не найдено</string>
+    <string name="filter_all">Все</string>
+    <string name="sort">Сортировка</string>
+    <string name="sort_updated_newest">Изменённые: новые сверху</string>
+    <string name="sort_updated_oldest">Изменённые: старые сверху</string>
+    <string name="sort_created_newest">Созданные: новые сверху</string>
+    <string name="sort_created_oldest">Созданные: старые сверху</string>
 
     <!-- Settings -->
     <string name="settings_theme">Тема</string>

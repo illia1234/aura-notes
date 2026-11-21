@@ -1,6 +1,21 @@
 package com.example.notebook.ui.screens.notes
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.ui.platform.LocalFocusManager
+import com.example.notebook.domain.SortOrder
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,14 +27,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridScope
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.automirrored.rounded.StickyNote2
@@ -49,7 +62,6 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
@@ -90,14 +102,17 @@ enum class DrawerDestination { Categories, Archive, Trash, Settings }
 fun NotesScreen(
     onOpenNote: (Long) -> Unit,
     onCreateNote: () -> Unit,
-    onOpenSearch: () -> Unit,
     onDrawerDestination: (DrawerDestination) -> Unit,
     viewModel: NotesViewModel = viewModel {
         val c = appContainer()
-        NotesViewModel(c.noteRepository, c.categoryRepository, c.userMessenger, c.applicationScope)
+        NotesViewModel(c.noteRepository, c.categoryRepository, c.settingsRepository, c.userMessenger, c.applicationScope)
     },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val search by viewModel.search.collectAsStateWithLifecycle()
+    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
+    // Survives opening a result and coming back, so the user returns to their results.
+    var searchExpanded by rememberSaveable { mutableStateOf(false) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -162,16 +177,29 @@ fun NotesScreen(
                         onDelete = viewModel::trashSelected,
                     )
                 } else {
-                    SearchPill(
-                        isGrid = isGrid,
-                        onMenuClick = { scope.launch { drawerState.open() } },
-                        onSearchClick = onOpenSearch,
-                        onToggleLayout = { isGrid = !isGrid },
-                    )
+                    Column {
+                        NotesSearchBar(
+                            query = viewModel.query,
+                            onQueryChange = viewModel::onQueryChange,
+                            expanded = searchExpanded,
+                            onExpandedChange = { expanded ->
+                                searchExpanded = expanded
+                                if (!expanded) viewModel.onQueryChange("")
+                            },
+                            isGrid = isGrid,
+                            onMenuClick = { scope.launch { drawerState.open() } },
+                            onToggleLayout = { isGrid = !isGrid },
+                        ) {
+                            SearchResults(search = search, onOpenNote = onOpenNote)
+                        }
+                        if (!searchExpanded) {
+                            FilterRow(sortOrder = sortOrder, onSortOrderChange = viewModel::setSortOrder)
+                        }
+                    }
                 }
             },
             floatingActionButton = {
-                if (!state.isSelecting) {
+                if (!state.isSelecting && !searchExpanded) {
                     ExtendedFloatingActionButton(
                         onClick = onCreateNote,
                         expanded = fabExpanded,
@@ -302,44 +330,156 @@ private fun EmptyNotes(modifier: Modifier = Modifier) {
 }
 
 /**
- * Stage 3 placeholder for the search bar: a pill that opens the search screen.
- * The real M3 SearchBar with its expand animation comes in stage 4.
+ * The pill-shaped M3 search bar. Collapsed: menu button, hint, list/grid toggle.
+ * Tapping it expands to full screen (standard SearchBar behavior) with [results] inside.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SearchPill(
+private fun NotesSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     isGrid: Boolean,
     onMenuClick: () -> Unit,
-    onSearchClick: () -> Unit,
     onToggleLayout: () -> Unit,
+    results: @Composable () -> Unit,
 ) {
-    Surface(
-        onClick = onSearchClick,
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier
-            .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .fillMaxWidth()
-            .height(56.dp),
+    val focusManager = LocalFocusManager.current
+    // The side margins disappear as the bar grows to full screen.
+    val sidePadding by animateDpAsState(if (expanded) 0.dp else 16.dp, label = "searchBarPadding")
+
+    // System "Back" closes the search first.
+    BackHandler(enabled = expanded) { onExpandedChange(false) }
+
+    SearchBar(
+        inputField = {
+            SearchBarDefaults.InputField(
+                query = query,
+                onQueryChange = onQueryChange,
+                onSearch = { focusManager.clearFocus() },
+                expanded = expanded,
+                onExpandedChange = onExpandedChange,
+                placeholder = { Text(stringResource(R.string.search_hint)) },
+                leadingIcon = {
+                    if (expanded) {
+                        IconButton(onClick = { onExpandedChange(false) }) {
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
+                    } else {
+                        IconButton(onClick = onMenuClick) {
+                            Icon(Icons.Rounded.Menu, contentDescription = stringResource(R.string.open_menu))
+                        }
+                    }
+                },
+                trailingIcon = {
+                    if (expanded) {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { onQueryChange("") }) {
+                                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.search_clear))
+                            }
+                        }
+                    } else {
+                        IconButton(onClick = onToggleLayout) {
+                            Icon(
+                                imageVector = if (isGrid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
+                                contentDescription = stringResource(if (isGrid) R.string.show_as_list else R.string.show_as_grid),
+                            )
+                        }
+                    }
+                },
+            )
+        },
+        expanded = expanded,
+        onExpandedChange = onExpandedChange,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = sidePadding),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp)) {
-            IconButton(onClick = onMenuClick) {
-                Icon(Icons.Rounded.Menu, contentDescription = stringResource(R.string.open_menu))
-            }
+        results()
+    }
+}
+
+/** Results inside the expanded search bar: one column of cards with matches highlighted. */
+@Composable
+private fun SearchResults(search: SearchState, onOpenNote: (Long) -> Unit) {
+    if (search.showNothingFound) {
+        Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.TopCenter) {
             Text(
-                text = stringResource(R.string.search_hint),
+                text = stringResource(R.string.search_nothing_found),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.padding(top = 32.dp),
             )
-            IconButton(onClick = onToggleLayout) {
-                Icon(
-                    imageVector = if (isGrid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
-                    contentDescription = stringResource(if (isGrid) R.string.show_as_list else R.string.show_as_grid),
+        }
+        return
+    }
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxSize().imePadding(),
+    ) {
+        items(search.results, key = { it.note.id }) { item ->
+            NoteCard(
+                note = item.note,
+                categoryName = item.categoryName,
+                maxContentLines = 3,
+                isSelected = false,
+                onClick = { onOpenNote(item.note.id) },
+                onLongClick = {},
+                highlight = search.query,
+                modifier = Modifier.animateItem(),
+            )
+        }
+    }
+}
+
+/**
+ * Row under the search bar: category chips (only "Все" until stage 5) that scroll sideways,
+ * and the sort button at the end.
+ */
+@Composable
+private fun FilterRow(sortOrder: SortOrder, onSortOrderChange: (SortOrder) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 4.dp),
+    ) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
+            item {
+                FilterChip(selected = true, onClick = {}, label = { Text(stringResource(R.string.filter_all)) })
+            }
+        }
+        SortButton(current = sortOrder, onSelect = onSortOrderChange)
+    }
+}
+
+@Composable
+private fun SortButton(current: SortOrder, onSelect: (SortOrder) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = stringResource(R.string.sort))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            SortOrder.entries.forEach { order ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(order.labelRes())) },
+                    onClick = {
+                        open = false
+                        onSelect(order)
+                    },
+                    trailingIcon = {
+                        if (order == current) Icon(Icons.Rounded.Check, contentDescription = null)
+                    },
                 )
             }
         }
     }
+}
+
+private fun SortOrder.labelRes(): Int = when (this) {
+    SortOrder.UPDATED_NEWEST_FIRST -> R.string.sort_updated_newest
+    SortOrder.UPDATED_OLDEST_FIRST -> R.string.sort_updated_oldest
+    SortOrder.CREATED_NEWEST_FIRST -> R.string.sort_created_newest
+    SortOrder.CREATED_OLDEST_FIRST -> R.string.sort_created_oldest
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

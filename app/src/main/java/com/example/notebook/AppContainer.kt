@@ -4,6 +4,9 @@ import android.content.Context
 import com.example.notebook.data.database.NotebookDatabase
 import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
+import com.example.notebook.data.repository.SettingsRepository
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.preferencesDataStoreFile
 import com.example.notebook.ui.UserMessenger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,4 +33,11 @@ class AppContainer(context: Context) {
     val categoryRepository: CategoryRepository by lazy { CategoryRepository(database) }
 
     val userMessenger = UserMessenger()
+
+    /** One DataStore per file for the whole app (DataStore requires a single instance). */
+    val settingsRepository: SettingsRepository by lazy {
+        SettingsRepository(
+            PreferenceDataStoreFactory.create(produceFile = { context.preferencesDataStoreFile("settings") }),
+        )
+    }
 }

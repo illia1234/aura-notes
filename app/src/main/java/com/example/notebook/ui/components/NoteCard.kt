@@ -28,6 +28,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.notebook.R
 import com.example.notebook.domain.Note
+import com.example.notebook.domain.NoteSearch
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import com.example.notebook.ui.theme.containerColor
 import com.example.notebook.ui.theme.contentColor
 import com.example.notebook.ui.theme.hasOutline
@@ -48,6 +53,7 @@ fun NoteCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    highlight: String? = null,
 ) {
     val border = when {
         isSelected -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
@@ -71,7 +77,7 @@ fun NoteCard(
             if (note.title.isNotBlank() || note.isPinned) {
                 Row(verticalAlignment = Alignment.Top) {
                     Text(
-                        text = note.title.trim(),
+                        text = highlighted(note.title.trim(), highlight),
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -88,7 +94,10 @@ fun NoteCard(
             }
             if (note.content.isNotBlank()) {
                 Text(
-                    text = note.content.trim(),
+                    text = highlighted(
+                        if (highlight == null) note.content.trim() else NoteSearch.snippet(note.content.trim(), highlight),
+                        highlight,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = maxContentLines,
                     overflow = TextOverflow.Ellipsis,
@@ -125,5 +134,26 @@ private fun NoteCardFooter(categoryName: String?, updatedAt: Long) {
             color = muted,
             maxLines = 1,
         )
+    }
+}
+
+/** Marks every match of the search query in [text] with a highlight background. */
+@Composable
+private fun highlighted(text: String, query: String?): AnnotatedString {
+    if (query.isNullOrBlank()) return AnnotatedString(text)
+    val ranges = NoteSearch.matchRanges(text, query)
+    if (ranges.isEmpty()) return AnnotatedString(text)
+    val style = SpanStyle(
+        background = MaterialTheme.colorScheme.tertiaryContainer,
+        color = MaterialTheme.colorScheme.onTertiaryContainer,
+    )
+    return buildAnnotatedString {
+        var last = 0
+        for (range in ranges) {
+            append(text, last, range.first)
+            withStyle(style) { append(text.substring(range)) }
+            last = range.last + 1
+        }
+        append(text, last, text.length)
     }
 }

@@ -13,7 +13,6 @@ import com.example.notebook.ui.screens.categories.CategoriesScreen
 import com.example.notebook.ui.screens.editor.EditorScreen
 import com.example.notebook.ui.screens.notes.DrawerDestination
 import com.example.notebook.ui.screens.notes.NotesScreen
-import com.example.notebook.ui.screens.search.SearchScreen
 import com.example.notebook.ui.screens.settings.SettingsScreen
 
 /** All screens of the app live in one Activity; this graph switches between them. */
@@ -32,7 +31,6 @@ fun NotebookNavHost(
             NotesScreen(
                 onOpenNote = { id -> navController.navigate(EditorRoute(noteId = id)) { launchSingleTop = true } },
                 onCreateNote = dropUnlessResumed { navController.navigate(EditorRoute()) },
-                onOpenSearch = dropUnlessResumed { navController.navigate(SearchRoute) },
                 onDrawerDestination = { destination ->
                     val route: Any = when (destination) {
                         DrawerDestination.Categories -> CategoriesRoute
@@ -46,7 +44,6 @@ fun NotebookNavHost(
         }
         // Each screen's "Back" pops only itself, and only once (double taps would pop the main screen too).
         composable<EditorRoute> { EditorScreen(onBack = dropUnlessResumed { navController.popBackStack() }) }
-        composable<SearchRoute> { SearchScreen(onBack = dropUnlessResumed { navController.popBackStack() }) }
         composable<CategoriesRoute> { CategoriesScreen(onBack = dropUnlessResumed { navController.popBackStack() }) }
         composable<ArchiveRoute> {
             BinScreen(mode = BinMode.Archive, onBack = dropUnlessResumed { navController.popBackStack() })

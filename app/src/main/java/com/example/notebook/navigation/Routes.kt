@@ -13,8 +13,6 @@ import kotlinx.serialization.Serializable
 /** noteId == null means "create a new note". */
 @Serializable data class EditorRoute(val noteId: Long? = null)
 
-@Serializable data object SearchRoute
-
 @Serializable data object CategoriesRoute
 
 @Serializable data object ArchiveRoute
