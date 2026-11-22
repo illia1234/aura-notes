@@ -5,18 +5,14 @@
     <string name="tab_home">Главная</string>
     <string name="tab_labels">Метки</string>
     <string name="tab_search">Поиск</string>
-    <string name="tab_favorites">Избранное</string>
+    <string name="tab_calendar">Календарь</string>
     <string name="tab_settings">Настройки</string>
 
     <!-- Main screen -->
     <string name="title_notes">Заметки</string>
     <string name="search_hint">Поиск в заметках</string>
     <string name="new_note">Новая заметка</string>
-    <string name="notes_pinned">Избранные</string>
-    <string name="notes_others">Другие</string>
     <string name="notes_empty">Заметок пока нет.\nНажмите «+», чтобы создать</string>
-    <string name="favorites_empty">Здесь появятся избранные заметки.\nНажмите ♡ в заметке, чтобы добавить её сюда</string>
-    <string name="note_is_favorite">В избранном</string>
     <string name="selection_clear">Отменить выбор</string>
 
     <!-- Archive and trash -->
@@ -25,8 +21,6 @@
     <string name="labels_storage">Хранилище</string>
 
     <!-- Note actions -->
-    <string name="pin">В избранное</string>
-    <string name="unpin">Убрать из избранного</string>
     <string name="archive">В архив</string>
     <string name="delete">Удалить</string>
     <string name="color">Цвет</string>
@@ -66,6 +60,32 @@
     <string name="notes_empty_filter">С этой меткой заметок нет</string>
     <string name="cancel">Отмена</string>
 
+    <!-- Calendar (v1.1) -->
+    <string name="calendar_add_shift_note">Заметка смены</string>
+    <string name="calendar_previous">Предыдущий месяц</string>
+    <string name="calendar_next">Следующий месяц</string>
+    <string name="calendar_today">К сегодняшнему дню</string>
+    <string name="calendar_no_notes">На этот день заметок нет</string>
+    <string name="calendar_hint_no_schedule">Настройте график смен значком календаря справа — рабочие дни станут зелёными, выходные красными</string>
+    <string name="calendar_hint_long_press">Долгое нажатие на день: смена ↔ выходной. Ещё раз — как в графике</string>
+    <string name="day_type_work">смена</string>
+    <string name="day_type_off">выходной</string>
+    <string name="note_date">Дата</string>
+    <string name="date_clear">Убрать дату</string>
+    <string name="ok">ОК</string>
+    <string name="schedule_title">График смен</string>
+    <string name="schedule_2_2">2/2</string>
+    <string name="schedule_5_2">5/2 (Пн–Пт)</string>
+    <string name="schedule_1_3">Сутки через трое</string>
+    <string name="schedule_custom">Свой</string>
+    <string name="schedule_work_days">Рабочих дней</string>
+    <string name="schedule_off_days">Выходных дней</string>
+    <string name="schedule_start">Первый рабочий день</string>
+    <string name="schedule_start_hint">С этого дня отсчитывается повторяющийся график</string>
+    <string name="schedule_reset">Сбросить график</string>
+    <string name="schedule_less">Меньше</string>
+    <string name="schedule_more">Больше</string>
+
     <!-- Common -->
     <string name="back">Назад</string>
     <string name="close">Закрыть</string>
@@ -94,6 +114,16 @@
     <string name="sort_created_oldest">Созданные: старые сверху</string>
 
     <!-- Settings -->
+    <string name="settings_style">Оформление</string>
+    <string name="style_black">Чёрный</string>
+    <string name="style_aurora">Аврора</string>
+    <string name="style_neon">Неон</string>
+    <string name="style_sunset">Закат</string>
+    <string name="style_graphite">Графит</string>
+    <string name="settings_language">Язык</string>
+    <string name="language_system">Как в системе</string>
+    <string name="language_russian">Русский</string>
+    <string name="language_english">English</string>
     <string name="settings_text_size">Размер текста в редакторе</string>
     <string name="text_size_small">Маленький</string>
     <string name="text_size_medium">Средний</string>

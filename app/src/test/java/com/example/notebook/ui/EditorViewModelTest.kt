@@ -64,10 +64,11 @@ class EditorViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun editor(noteId: Long? = null, categoryId: Long? = null): EditorViewModel {
+    private fun editor(noteId: Long? = null, categoryId: Long? = null, date: Long? = null): EditorViewModel {
         val args = buildMap<String, Any> {
             noteId?.let { put("noteId", it) }
             categoryId?.let { put("categoryId", it) }
+            date?.let { put("date", it) }
         }
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -150,16 +151,30 @@ class EditorViewModelTest {
     }
 
     @Test
-    fun colorAndPinChosenBeforeTypingAreApplied() = runTest(dispatcher) {
+    fun colorAndDateChosenBeforeTypingAreApplied() = runTest(dispatcher) {
         val vm = editor()
         settle()
         vm.changeColor(NoteColor.MINT)
-        vm.togglePinned()
+        vm.changeDate(20_000L)
         vm.onContentChange("a")
         settle()
         val note = allNotes().single()
         assertEquals(NoteColor.MINT, note.color)
-        assertTrue(note.isPinned)
+        assertEquals(20_000L, note.noteDate)
+    }
+
+    @Test
+    fun noteCreatedFromCalendarGetsThatDayAndDateCanBeRemoved() = runTest(dispatcher) {
+        val vm = editor(date = 20_413L)
+        settle()
+        vm.onContentChange("смена")
+        settle()
+        val id = allNotes().single().id
+        assertEquals(20_413L, notes.getNote(id)!!.noteDate)
+
+        vm.changeDate(null)
+        settle()
+        assertEquals(null, notes.getNote(id)!!.noteDate)
     }
 
     @Test

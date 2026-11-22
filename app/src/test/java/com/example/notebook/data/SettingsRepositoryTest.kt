@@ -5,6 +5,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.notebook.data.repository.SettingsRepository
 import com.example.notebook.domain.AppSettings
+import com.example.notebook.domain.AuraStyle
+import com.example.notebook.domain.SchedulePattern
+import com.example.notebook.domain.ShiftSchedule
 import com.example.notebook.domain.EditorTextSize
 import com.example.notebook.domain.SortOrder
 import kotlinx.coroutines.flow.first
@@ -38,6 +41,24 @@ class SettingsRepositoryTest {
             AppSettings(SortOrder.CREATED_OLDEST_FIRST, EditorTextSize.LARGE),
             SettingsRepository(store).settings.first(),
         )
+    }
+
+    @Test
+    fun styleAndScheduleAreRememberedAndCanBeCleared() = runTest {
+        val f = file("settings4")
+        val store = PreferenceDataStoreFactory.create(scope = backgroundScope, produceFile = { f })
+        val settings = SettingsRepository(store)
+        assertEquals(null, settings.schedule.first())
+
+        val schedule = ShiftSchedule(SchedulePattern.CUSTOM, workDays = 4, offDays = 3, startEpochDay = 20_400L)
+        settings.setStyle(AuraStyle.NEON)
+        settings.setSchedule(schedule)
+        val reopened = SettingsRepository(store).settings.first()
+        assertEquals(AuraStyle.NEON, reopened.style)
+        assertEquals(schedule, reopened.schedule)
+
+        settings.setSchedule(null)
+        assertEquals(null, SettingsRepository(store).schedule.first())
     }
 
     @Test

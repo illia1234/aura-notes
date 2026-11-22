@@ -75,7 +75,7 @@ class NotesViewModelTest {
             withTimeout(5_000) { vm.uiState.first { !it.isLoading && predicate(it) } }
         }
 
-    private fun NotesUiState.titles() = (pinned + others).map { it.note.title }
+    private fun NotesUiState.titles() = notes.map { it.note.title }
 
     @Test
     fun filterShowsOnlyNotesOfThatCategory() = runTest {
@@ -113,21 +113,6 @@ class NotesViewModelTest {
         val state = stateWhere { it.categories.isEmpty() }
         assertEquals(null, state.filterCategoryId)
         assertEquals(listOf("a"), state.titles())
-    }
-
-    @Test
-    fun favoritesTabShowsOnlyFavoritesAndIgnoresTagFilter() = runTest {
-        val work = (categories.createCategory("Работа") as CategoryResult.Success).id
-        val fav = notes.createNote("любимая", "")
-        notes.createNote("обычная", "", categoryId = work)
-        notes.setPinned(listOf(fav), true)
-        homeFilter.value = work // the home tab is filtered, favorites must not be
-
-        val favorites = NotesViewModel(notes, categories, settings, homeFilter, UserMessenger(), scope, favoritesOnly = true)
-        val state = withContext(Dispatchers.Default) {
-            withTimeout(5_000) { favorites.uiState.first { !it.isLoading && it.others.isNotEmpty() } }
-        }
-        assertEquals(listOf("любимая"), state.titles())
     }
 
     @Test

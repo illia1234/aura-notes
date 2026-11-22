@@ -10,6 +10,7 @@ import com.example.notebook.R
 import com.example.notebook.data.backup.BackupException
 import com.example.notebook.data.backup.BackupRepository
 import com.example.notebook.data.repository.SettingsRepository
+import com.example.notebook.domain.AuraStyle
 import com.example.notebook.domain.EditorTextSize
 import com.example.notebook.domain.SortOrder
 import com.example.notebook.ui.UserMessage
@@ -33,6 +34,7 @@ class SettingsViewModel(
 
     fun setSortOrder(order: SortOrder) = save { settings.setSortOrder(order) }
     fun setEditorTextSize(size: EditorTextSize) = save { settings.setEditorTextSize(size) }
+    fun setStyle(style: AuraStyle) = save { settings.setStyle(style) }
 
     private fun save(block: suspend () -> Unit) {
         viewModelScope.launch { block() }

@@ -21,12 +21,10 @@ import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -62,7 +60,6 @@ import com.example.notebook.ui.components.GlowFab
 import com.example.notebook.ui.components.NoteCard
 import com.example.notebook.ui.components.NoteColorSheet
 import com.example.notebook.ui.components.ScreenTitle
-import com.example.notebook.ui.components.SectionLabel
 import com.example.notebook.ui.components.fadeTopEdge
 import com.example.notebook.ui.components.glass
 import com.example.notebook.ui.components.labelRes
@@ -72,21 +69,20 @@ import com.example.notebook.ui.components.tabBarInset
 import com.example.notebook.ui.theme.AuraColors
 
 /**
- * "Главная" tab (and "Избранное" with [favoritesOnly]): top bar with the Aura logo,
+ * "Главная" tab: top bar with the Aura logo,
  * the big "Заметки" title, tag chips and sort, a list of glass cards and the glowing "+".
  * A long press switches the top bar to multi-select actions.
  */
 @Composable
 fun NotesScreen(
-    favoritesOnly: Boolean,
     onOpenNote: (Long) -> Unit,
     onCreateNote: (categoryId: Long?) -> Unit,
     onOpenSearch: () -> Unit,
-    viewModel: NotesViewModel = viewModel(key = if (favoritesOnly) "favorites" else "home") {
+    viewModel: NotesViewModel = viewModel {
         val c = appContainer()
         NotesViewModel(
             c.noteRepository, c.categoryRepository, c.settingsRepository,
-            c.homeCategoryFilter, c.userMessenger, c.applicationScope, favoritesOnly,
+            c.homeCategoryFilter, c.userMessenger, c.applicationScope,
         )
     },
 ) {
@@ -110,9 +106,7 @@ fun NotesScreen(
             if (state.isSelecting) {
                 SelectionBar(
                     count = state.selectedIds.size,
-                    allFavorite = state.selectedNotes.all { it.isPinned },
                     onClose = viewModel::clearSelection,
-                    onToggleFavorite = viewModel::togglePinSelected,
                     onColor = { showColorSheet = true },
                     onCategory = { showCategorySheet = true },
                     onArchive = viewModel::archiveSelected,
@@ -128,15 +122,15 @@ fun NotesScreen(
                     end = 16.dp,
                     top = 8.dp,
                     // Room for the tab bar and the "+" button above it.
-                    bottom = tabBarInset() + if (favoritesOnly) 16.dp else 96.dp,
+                    bottom = tabBarInset() + 96.dp,
                 ),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.weight(1f).fadeTopEdge(),
             ) {
                 item(key = "title") {
-                    ScreenTitle(stringResource(if (favoritesOnly) R.string.tab_favorites else R.string.title_notes))
+                    ScreenTitle(stringResource(R.string.title_notes))
                 }
-                if (!favoritesOnly && (state.categories.isNotEmpty() || !state.isEmpty)) {
+                if (state.categories.isNotEmpty() || !state.isEmpty) {
                     item(key = "filters") {
                         FilterRow(
                             categories = state.categories,
@@ -151,13 +145,11 @@ fun NotesScreen(
                     item(key = "empty") {
                         EmptyState(
                             icon = when {
-                                favoritesOnly -> Icons.Outlined.FavoriteBorder
                                 state.filterCategoryId != null -> Icons.AutoMirrored.Outlined.Label
                                 else -> Icons.AutoMirrored.Outlined.StickyNote2
                             },
                             text = stringResource(
                                 when {
-                                    favoritesOnly -> R.string.favorites_empty
                                     state.filterCategoryId != null -> R.string.notes_empty_filter
                                     else -> R.string.notes_empty
                                 },
@@ -165,14 +157,11 @@ fun NotesScreen(
                         )
                     }
                 }
-                if (state.showSections) section("pinned", R.string.notes_pinned)
-                notes(state.pinned, state.selectedIds, onCardClick, onCardLongClick)
-                if (state.showSections) section("others", R.string.notes_others)
-                notes(state.others, state.selectedIds, onCardClick, onCardLongClick)
+                notes(state.notes, state.selectedIds, onCardClick, onCardLongClick)
             }
         }
 
-        if (!favoritesOnly && !state.isSelecting) {
+        if (!state.isSelecting) {
             GlowFab(
                 // Inside a tag filter the new note gets that tag, otherwise it would vanish
                 // from the current view once saved.
@@ -227,17 +216,13 @@ fun NotesScreen(
     }
 }
 
-private fun LazyListScope.section(key: String, textRes: Int) {
-    item(key = key) { SectionLabel(stringResource(textRes), Modifier.animateItem()) }
-}
-
 private fun LazyListScope.notes(
     items: List<NoteItem>,
     selectedIds: Set<Long>,
     onClick: (Long) -> Unit,
     onLongClick: (Long) -> Unit,
 ) {
-    // Keys = note ids, so animateItem() can move a card (e.g. into "Избранные") smoothly.
+    // Keys = note ids, so animateItem() can move cards smoothly when the list changes.
     items(items, key = { it.note.id }) { item ->
         NoteCard(
             note = item.note,
@@ -325,9 +310,7 @@ private fun SortButton(current: SortOrder, onSelect: (SortOrder) -> Unit) {
 @Composable
 private fun SelectionBar(
     count: Int,
-    allFavorite: Boolean,
     onClose: () -> Unit,
-    onToggleFavorite: () -> Unit,
     onColor: () -> Unit,
     onCategory: () -> Unit,
     onArchive: () -> Unit,
@@ -349,11 +332,6 @@ private fun SelectionBar(
             style = MaterialTheme.typography.titleMedium,
             color = AuraColors.TextPrimary,
             modifier = Modifier.weight(1f).padding(start = 4.dp),
-        )
-        BarIcon(
-            if (allFavorite) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
-            if (allFavorite) R.string.unpin else R.string.pin,
-            onToggleFavorite,
         )
         BarIcon(Icons.Outlined.Palette, R.string.color, onColor)
         BarIcon(Icons.AutoMirrored.Outlined.Label, R.string.category, onCategory)

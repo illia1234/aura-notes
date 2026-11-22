@@ -4,17 +4,19 @@ import android.content.ClipData
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import com.example.notebook.ui.components.DayPickerDialog
 import com.example.notebook.ui.components.GlowDot
 import com.example.notebook.ui.components.glass
 import com.example.notebook.ui.components.noteTransitionKey
 import com.example.notebook.ui.components.sharedNoteBounds
 import com.example.notebook.ui.theme.AuraColors
+import com.example.notebook.ui.theme.LocalAuraPalette
+import com.example.notebook.ui.theme.auraBackground
 import com.example.notebook.ui.theme.accent
 import com.example.notebook.ui.theme.glows
 import androidx.compose.material.icons.rounded.DeleteForever
@@ -98,6 +100,7 @@ import com.example.notebook.ui.appContainer
 import com.example.notebook.ui.components.BackButton
 import com.example.notebook.ui.components.NoteColorSheet
 import com.example.notebook.ui.util.formatFullDate
+import com.example.notebook.ui.util.formatDay
 import com.example.notebook.ui.util.formatShortDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,6 +122,7 @@ fun EditorScreen(
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     var showColorSheet by rememberSaveable { mutableStateOf(false) }
     var showCategorySheet by rememberSaveable { mutableStateOf(false) }
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var showNewCategory by rememberSaveable { mutableStateOf(false) }
     var showInfo by rememberSaveable { mutableStateOf(false) }
     var showDeleteForever by rememberSaveable { mutableStateOf(false) }
@@ -141,16 +145,18 @@ fun EditorScreen(
         animationSpec = tween(300),
         label = "editorGlow",
     )
-    val background = AuraColors.Background
+    // Same display-style background as the rest of the app, but opaque: the editor grows
+    // over the list during the open animation and must cover it.
+    val palette = LocalAuraPalette.current
     val contentColor = AuraColors.TextPrimary
 
     Scaffold(
-        containerColor = background,
+        containerColor = Color.Transparent,
         contentColor = contentColor,
         modifier = Modifier
             // The editor grows out of the tapped card (or the "+" button) and shrinks back on "Назад".
             .sharedNoteBounds(noteTransitionKey(viewModel.openedNoteId))
-            .background(background)
+            .auraBackground(palette)
             .drawBehind {
                 drawRect(
                     brush = Brush.radialGradient(
@@ -176,10 +182,8 @@ fun EditorScreen(
                         }
                     } else {
                         EditorActions(
-                            isPinned = viewModel.isPinned,
                             isArchived = storedNote?.isArchived == true,
                             canShowInfo = storedNote != null,
-                            onTogglePin = viewModel::togglePinned,
                             onArchive = viewModel::archive,
                             onUnarchive = viewModel::unarchive,
                             onDelete = viewModel::moveToTrash,
@@ -211,6 +215,8 @@ fun EditorScreen(
                     onColorClick = { showColorSheet = true },
                     categoryName = categories.firstOrNull { it.id == viewModel.categoryId }?.name,
                     onCategoryClick = { showCategorySheet = true },
+                    noteDay = viewModel.noteDate,
+                    onDateClick = { showDatePicker = true },
                     modifier = Modifier.navigationBarsPadding().imePadding(),
                 )
             }
@@ -241,6 +247,25 @@ fun EditorScreen(
                 viewModel.deleteForever()
             },
             onDismiss = { showDeleteForever = false },
+        )
+    }
+
+    if (showDatePicker) {
+        DayPickerDialog(
+            initialEpochDay = viewModel.noteDate,
+            onPick = { day ->
+                viewModel.changeDate(day)
+                showDatePicker = false
+            },
+            onDismiss = { showDatePicker = false },
+            onClear = if (viewModel.noteDate != null) {
+                {
+                    viewModel.changeDate(null)
+                    showDatePicker = false
+                }
+            } else {
+                null
+            },
         )
     }
 
@@ -283,10 +308,8 @@ fun EditorScreen(
 
 @Composable
 private fun EditorActions(
-    isPinned: Boolean,
     isArchived: Boolean,
     canShowInfo: Boolean,
-    onTogglePin: () -> Unit,
     onArchive: () -> Unit,
     onUnarchive: () -> Unit,
     onDelete: () -> Unit,
@@ -297,14 +320,6 @@ private fun EditorActions(
     val context = LocalContext.current
     var menuOpen by remember { mutableStateOf(false) }
 
-    // "Избранное" (heart) is the former pin: favorites stay on top and fill the heart tab.
-    IconButton(onClick = onTogglePin) {
-        Icon(
-            imageVector = if (isPinned) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
-            contentDescription = stringResource(if (isPinned) R.string.unpin else R.string.pin),
-            tint = if (isPinned) AuraColors.AccentViolet else LocalContentColor.current,
-        )
-    }
     if (isArchived) {
         IconButton(onClick = onUnarchive) {
             Icon(Icons.Rounded.Unarchive, contentDescription = stringResource(R.string.unarchive))
@@ -452,6 +467,8 @@ private fun EditorBottomBar(
     onColorClick: () -> Unit,
     categoryName: String?,
     onCategoryClick: () -> Unit,
+    noteDay: Long?,
+    onDateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -486,12 +503,26 @@ private fun EditorBottomBar(
                 )
             }
         }
+        // Calendar day of the note (v1.1): the day, or just the calendar icon when there is none.
+        TextButton(
+            onClick = onDateClick,
+            colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),
+        ) {
+            Icon(
+                Icons.Outlined.Event,
+                contentDescription = if (noteDay == null) stringResource(R.string.note_date) else null,
+            )
+            if (noteDay != null) {
+                Text(formatDay(context, noteDay), maxLines = 1, modifier = Modifier.padding(start = 8.dp))
+            }
+        }
         Spacer(Modifier.weight(1f))
         if (updatedAt != null) {
             CompositionLocalProvider(LocalContentColor provides LocalContentColor.current.copy(alpha = 0.75f)) {
                 Text(
-                    text = stringResource(R.string.editor_edited, formatShortDate(context, updatedAt)),
+                    text = formatShortDate(context, updatedAt),
                     style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
                     modifier = Modifier.padding(end = 12.dp),
                 )
             }

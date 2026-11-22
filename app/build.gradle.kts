@@ -18,8 +18,8 @@ android {
         applicationId = "com.example.notebook"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -57,10 +57,21 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // java.time (dates in the calendar) on Android 7 too: the build adds the missing classes.
+        isCoreLibraryDesugaringEnabled = true
     }
     testOptions {
         // Robolectric needs Android resources to run Room tests on the JVM.
         unitTests.isIncludeAndroidResources = true
+    }
+    sourceSets {
+        // Room schema snapshots (1.json, 2.json) for the migration test. Robolectric reads the
+        // app's debug assets, so they go there (debug builds only, not into the release APK).
+        getByName("debug").assets.directories.add("$projectDir/schemas")
+    }
+    androidResources {
+        // Lists the app languages (ru, en) for Android 13+ per-app language settings.
+        generateLocaleConfig = true
     }
     buildFeatures {
         compose = true
@@ -82,6 +93,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.datastore.preferences)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

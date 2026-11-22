@@ -20,7 +20,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -42,13 +42,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.notebook.R
 import com.example.notebook.ui.theme.AuraColors
+import com.example.notebook.ui.theme.LocalAuraPalette
 
-/** The five tabs, left to right (spec): Домик, Бирка, Поиск, Сердце, Шестерёнка. */
+/** The five tabs, left to right: Домик, Бирка, Поиск, Календарь (v1.1, was Сердце), Шестерёнка. */
 enum class AuraTab(val route: Any, val icon: ImageVector, val labelRes: Int) {
     Home(HomeRoute, Icons.Outlined.Home, R.string.tab_home),
     Labels(LabelsRoute, Icons.AutoMirrored.Outlined.Label, R.string.tab_labels),
     Search(SearchRoute, Icons.Outlined.Search, R.string.tab_search),
-    Favorites(FavoritesRoute, Icons.Outlined.FavoriteBorder, R.string.tab_favorites),
+    Calendar(CalendarRoute, Icons.Outlined.CalendarMonth, R.string.tab_calendar),
     Settings(SettingsRoute, Icons.Outlined.Settings, R.string.tab_settings),
 }
 
@@ -62,6 +63,8 @@ val BottomBarHeight = 68.dp
  */
 @Composable
 fun AuraBottomBar(current: AuraTab?, onSelect: (AuraTab) -> Unit, modifier: Modifier = Modifier) {
+    // The bar takes the bottom color of the display style, so it blends into the background.
+    val barColor = LocalAuraPalette.current.baseBottom
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
@@ -70,7 +73,7 @@ fun AuraBottomBar(current: AuraTab?, onSelect: (AuraTab) -> Unit, modifier: Modi
             // Frosted veil: almost opaque, so cards scrolling underneath only faintly show through.
             .background(
                 Brush.verticalGradient(
-                    listOf(AuraColors.Background.copy(alpha = 0.96f), AuraColors.Background),
+                    listOf(barColor.copy(alpha = 0.94f), barColor),
                 ),
             )
             .drawBehind {

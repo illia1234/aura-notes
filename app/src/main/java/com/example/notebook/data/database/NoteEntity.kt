@@ -21,6 +21,7 @@ import com.example.notebook.domain.NoteColor
     ],
     indices = [
         Index("categoryId"),
+        Index("noteDate"),
         // uuid identifies a note across devices and backups, so import never duplicates it.
         Index(value = ["uuid"], unique = true),
     ],
@@ -35,6 +36,8 @@ data class NoteEntity(
     val isPinned: Boolean = false,
     val isArchived: Boolean = false,
     val deletedAt: Long? = null,
+    /** Calendar day of the note (days since 1970-01-01), or null. Added in database version 2. */
+    val noteDate: Long? = null,
     val createdAt: Long,
     val updatedAt: Long,
 )
@@ -49,6 +52,7 @@ fun NoteEntity.toDomain() = Note(
     isPinned = isPinned,
     isArchived = isArchived,
     deletedAt = deletedAt,
+    noteDate = noteDate,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )
@@ -63,6 +67,7 @@ fun Note.toEntity() = NoteEntity(
     isPinned = isPinned,
     isArchived = isArchived,
     deletedAt = deletedAt,
+    noteDate = noteDate,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

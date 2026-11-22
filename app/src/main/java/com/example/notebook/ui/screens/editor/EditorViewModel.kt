@@ -79,7 +79,8 @@ class EditorViewModel(
         private set
     var color by mutableStateOf(NoteColor.DEFAULT)
         private set
-    var isPinned by mutableStateOf(false)
+    /** Calendar day of the note (days since 1970-01-01), or null. From the calendar it starts preset. */
+    var noteDate by mutableStateOf(route.date)
         private set
 
     /** For a new note, starts with the category of the filter it was created from. */
@@ -123,7 +124,7 @@ class EditorViewModel(
                 title = note.title
                 content = note.content
                 color = note.color
-                isPinned = note.isPinned
+                noteDate = note.noteDate
                 categoryId = note.categoryId
                 isLoaded = true
             }
@@ -159,13 +160,12 @@ class EditorViewModel(
         if (id == null) {
             if (currentTitle.isBlank() && currentContent.isBlank()) return@withLock
             val newId = try {
-                notes.createNote(currentTitle, currentContent, color, categoryId)
+                notes.createNote(currentTitle, currentContent, color, categoryId, noteDate)
             } catch (e: SQLiteConstraintException) {
                 // The chosen category was deleted meanwhile: keep the text, drop the category.
                 categoryId = null
-                notes.createNote(currentTitle, currentContent, color)
+                notes.createNote(currentTitle, currentContent, color, noteDate = noteDate)
             }
-            if (isPinned) notes.setPinned(listOf(newId), true)
             noteId = newId
         } else {
             notes.updateText(id, currentTitle, currentContent)
@@ -178,11 +178,11 @@ class EditorViewModel(
         appScope.launch { save() }
     }
 
-    fun togglePinned() {
-        isPinned = !isPinned
+    /** Puts the note on a calendar day, or takes it off (null). */
+    fun changeDate(epochDay: Long?) {
+        noteDate = epochDay
         val id = noteId ?: return
-        val pinned = isPinned
-        appScope.launch { notes.setPinned(listOf(id), pinned) }
+        appScope.launch { notes.setDate(listOf(id), epochDay) }
     }
 
     fun changeColor(newColor: NoteColor) {
@@ -205,14 +205,8 @@ class EditorViewModel(
     }
 
     fun archive() = finishWith { id ->
-        val wasPinned = isPinned
         notes.archive(listOf(id))
-        messenger.send(
-            NoteMessages.archived(1) {
-                notes.unarchive(listOf(id))
-                if (wasPinned) notes.setPinned(listOf(id), true)
-            },
-        )
+        messenger.send(NoteMessages.archived(1) { notes.unarchive(listOf(id)) })
     }
 
     /** Archived note: back to the main screen. The editor stays open. */

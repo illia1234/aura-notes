@@ -112,17 +112,35 @@ class NoteRepositoryTest {
     }
 
     @Test
-    fun pinnedNotesComeFirst() = runTest {
+    fun favoritesNoLongerChangeTheOrder() = runTest {
+        // v1.1 removed favorites from the UI; an old pinned flag must not move a note to the top.
         val old = notes.createNote("old", "")
         clock.advance(1_000)
         val new = notes.createNote("new", "")
-        assertEquals(listOf(new, old), active().map { it.id })
-
         notes.setPinned(listOf(old), true)
-        assertEquals(listOf(old, new), active().map { it.id })
-
-        notes.setPinned(listOf(old), false)
         assertEquals(listOf(new, old), active().map { it.id })
+    }
+
+    @Test
+    fun datedNotesAreListedForTheCalendarButNotFromArchiveOrTrash() = runTest {
+        val day = 20_413L
+        val dated = notes.createNote("смена", "", noteDate = day)
+        val archived = notes.createNote("в архиве", "", noteDate = day)
+        val trashed = notes.createNote("в корзине", "", noteDate = day)
+        notes.createNote("без даты", "")
+        notes.archive(listOf(archived))
+        notes.moveToTrash(listOf(trashed))
+        assertEquals(listOf(dated), notes.observeDatedNotes().first().map { it.id })
+    }
+
+    @Test
+    fun settingADateIsAnEdit() = runTest {
+        val id = notes.createNote("t", "")
+        clock.advance(1_000)
+        notes.setDate(listOf(id), 20_413L)
+        val note = notes.getNote(id)!!
+        assertEquals(20_413L, note.noteDate)
+        assertEquals(clock.now, note.updatedAt)
     }
 
     @Test

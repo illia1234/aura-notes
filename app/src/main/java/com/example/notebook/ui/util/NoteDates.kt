@@ -8,6 +8,8 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 /** How far a date is from today, in calendar days of the given time zone. */
 enum class DayDistance { TODAY, YESTERDAY, THIS_YEAR, OLDER }
@@ -50,4 +52,15 @@ fun formatFullDate(context: Context, millis: Long): String {
     val locale = context.resources.configuration.locales[0] ?: Locale.getDefault()
     val skeleton = if (DateFormat.is24HourFormat(context)) "dMMMMyHHmm" else "dMMMMyhmma"
     return SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, skeleton), locale).format(Date(millis))
+}
+
+/**
+ * A calendar day (days since 1970-01-01) for display: "14 нояб." in the current year,
+ * "14 нояб. 2025" otherwise. Calendar days have no time zone, so none is applied.
+ */
+fun formatDay(context: Context, epochDay: Long, today: LocalDate = LocalDate.now()): String {
+    val locale = context.resources.configuration.locales[0] ?: Locale.getDefault()
+    val day = LocalDate.ofEpochDay(epochDay)
+    val skeleton = if (day.year == today.year) "dMMM" else "dMMMy"
+    return DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, skeleton), locale).format(day)
 }

@@ -15,6 +15,8 @@ data class Note(
     val isPinned: Boolean,
     val isArchived: Boolean,
     val deletedAt: Long?,
+    /** Calendar day (days since 1970-01-01) the note belongs to, or null (v1.1). */
+    val noteDate: Long? = null,
     val createdAt: Long,
     val updatedAt: Long,
 ) {

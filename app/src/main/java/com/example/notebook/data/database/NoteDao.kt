@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface NoteDao {
 
-    /** Main screen: not archived, not in trash; pinned notes first. */
-    @Query("SELECT * FROM notes WHERE isArchived = 0 AND deletedAt IS NULL ORDER BY isPinned DESC, $ORDER_BY")
+    /** Main screen: not archived, not in trash. (Since v1.1 favorites/pins no longer affect the order.) */
+    @Query("SELECT * FROM notes WHERE isArchived = 0 AND deletedAt IS NULL ORDER BY $ORDER_BY")
     fun observeActive(sort: String): Flow<List<NoteEntity>>
 
     @Query("SELECT * FROM notes WHERE isArchived = 1 AND deletedAt IS NULL ORDER BY $ORDER_BY")
@@ -26,6 +26,10 @@ interface NoteDao {
     /** Trash: most recently deleted first. */
     @Query("SELECT * FROM notes WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC, id DESC")
     fun observeTrash(): Flow<List<NoteEntity>>
+
+    /** Main-screen notes that have a calendar day (for the calendar tab). */
+    @Query("SELECT * FROM notes WHERE noteDate IS NOT NULL AND isArchived = 0 AND deletedAt IS NULL ORDER BY noteDate, updatedAt DESC")
+    fun observeDated(): Flow<List<NoteEntity>>
 
     @Query("SELECT * FROM notes WHERE id = :id")
     fun observeById(id: Long): Flow<NoteEntity?>
@@ -67,6 +71,10 @@ interface NoteDao {
     /** `IS NOT` (not `!=`) so that comparing with NULL works. */
     @Query("UPDATE notes SET categoryId = :categoryId, updatedAt = :now WHERE id IN (:ids) AND categoryId IS NOT :categoryId")
     suspend fun setCategory(ids: List<Long>, categoryId: Long?, now: Long)
+
+    /** Calendar day of a note (v1.1). Changing it is an edit, so updatedAt changes too. */
+    @Query("UPDATE notes SET noteDate = :epochDay, updatedAt = :now WHERE id IN (:ids) AND noteDate IS NOT :epochDay")
+    suspend fun setDate(ids: List<Long>, epochDay: Long?, now: Long)
 
     // --- Permanent deletion ---
 

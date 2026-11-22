@@ -29,8 +29,7 @@ import kotlinx.coroutines.launch
 data class NoteItem(val note: Note, val categoryName: String?)
 
 data class NotesUiState(
-    val pinned: List<NoteItem> = emptyList(),
-    val others: List<NoteItem> = emptyList(),
+    val notes: List<NoteItem> = emptyList(),
     val selectedIds: Set<Long> = emptySet(),
     val isLoading: Boolean = true,
     /** All tags with counts, for the chips. */
@@ -38,18 +37,15 @@ data class NotesUiState(
     /** Tag filter; null = "Все". */
     val filterCategoryId: Long? = null,
 ) {
-    val isEmpty: Boolean get() = !isLoading && pinned.isEmpty() && others.isEmpty()
+    val isEmpty: Boolean get() = !isLoading && notes.isEmpty()
     val isSelecting: Boolean get() = selectedIds.isNotEmpty()
 
-    /** Section titles are shown only when at least one note is a favorite (spec). */
-    val showSections: Boolean get() = pinned.isNotEmpty() && others.isNotEmpty()
-
     val selectedNotes: List<Note>
-        get() = (pinned + others).map { it.note }.filter { it.id in selectedIds }
+        get() = notes.map { it.note }.filter { it.id in selectedIds }
 }
 
 /**
- * The note list of the "Главная" tab, and also of the "Избранное" tab ([favoritesOnly]):
+ * The note list of the "Главная" tab:
  * notes, tag filter, sort order and multi-select. Selection lives here (not in the
  * composable), so it survives rotation.
  *
@@ -64,7 +60,6 @@ class NotesViewModel(
     private val homeFilter: MutableStateFlow<Long?>,
     private val messenger: UserMessenger,
     private val appScope: CoroutineScope,
-    private val favoritesOnly: Boolean = false,
 ) : ViewModel() {
 
     private val selection = MutableStateFlow<Set<Long>>(emptySet())
@@ -77,10 +72,7 @@ class NotesViewModel(
         .flatMapLatest { order -> notes.observeActiveNotes(order) }
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
-    private val noFilter = MutableStateFlow<Long?>(null)
-
-    /** Favorites ignore the tag filter; the home tab uses the shared one. */
-    private val filter: MutableStateFlow<Long?> = if (favoritesOnly) noFilter else homeFilter
+    private val filter: MutableStateFlow<Long?> = homeFilter
 
     fun setFilter(categoryId: Long?) {
         filter.value = categoryId
@@ -100,13 +92,10 @@ class NotesViewModel(
         val names = cats.associate { it.id to it.name }
         // If the filtered tag was deleted, fall back to "Все".
         val activeFilter = filterId?.takeIf { it in names }
-        val shown = noteList
-            .filter { !favoritesOnly || it.isPinned }
-            .filter { activeFilter == null || it.categoryId == activeFilter }
+        val shown = noteList.filter { activeFilter == null || it.categoryId == activeFilter }
         val items = shown.map { NoteItem(it, it.categoryId?.let(names::get)) }
         NotesUiState(
-            pinned = if (favoritesOnly) emptyList() else items.filter { it.note.isPinned },
-            others = if (favoritesOnly) items else items.filterNot { it.note.isPinned },
+            notes = items,
             // Notes that disappeared (deleted, filtered out) drop out of the selection.
             selectedIds = selected intersect shown.mapTo(HashSet()) { it.id },
             isLoading = false,
@@ -118,15 +107,6 @@ class NotesViewModel(
     fun toggleSelection(id: Long) = selection.update { if (id in it) it - id else it + id }
 
     fun clearSelection() = selection.update { emptySet() }
-
-    /** Adds all selected notes to favorites, or removes them if all are favorites already. */
-    fun togglePinSelected() {
-        val selected = uiState.value.selectedNotes
-        val pin = !selected.all { it.isPinned }
-        val ids = selected.map { it.id }
-        clearSelection()
-        appScope.launch { notes.setPinned(ids, pin) }
-    }
 
     fun setColorForSelected(color: NoteColor) {
         val ids = uiState.value.selectedIds.toList()
@@ -148,19 +128,11 @@ class NotesViewModel(
     }
 
     fun archiveSelected() {
-        val selected = uiState.value.selectedNotes
-        val ids = selected.map { it.id }
-        // Archiving unpins; remember which were pinned so "Отменить" restores them exactly.
-        val pinnedIds = selected.filter { it.isPinned }.map { it.id }
+        val ids = uiState.value.selectedIds.toList()
         clearSelection()
         appScope.launch {
             notes.archive(ids)
-            messenger.send(
-                NoteMessages.archived(ids.size) {
-                    notes.unarchive(ids)
-                    if (pinnedIds.isNotEmpty()) notes.setPinned(pinnedIds, true)
-                },
-            )
+            messenger.send(NoteMessages.archived(ids.size) { notes.unarchive(ids) })
         }
     }
 

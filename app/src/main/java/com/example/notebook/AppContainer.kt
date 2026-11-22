@@ -5,6 +5,7 @@ import com.example.notebook.data.backup.BackupRepository
 import com.example.notebook.data.database.NotebookDatabase
 import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
+import com.example.notebook.data.repository.ScheduleRepository
 import com.example.notebook.data.repository.SettingsRepository
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
@@ -33,6 +34,8 @@ class AppContainer(context: Context) {
     val noteRepository: NoteRepository by lazy { NoteRepository(database.noteDao()) }
 
     val categoryRepository: CategoryRepository by lazy { CategoryRepository(database) }
+
+    val scheduleRepository: ScheduleRepository by lazy { ScheduleRepository(database.dayOverrideDao()) }
 
     val userMessenger = UserMessenger()
 

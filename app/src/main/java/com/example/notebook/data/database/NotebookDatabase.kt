@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.AutoMigration
 import androidx.room.migration.Migration
 
 /**
@@ -16,14 +17,19 @@ import androidx.room.migration.Migration
  * - fallbackToDestructiveMigration is never used: it would silently wipe all notes.
  */
 @Database(
-    entities = [NoteEntity::class, CategoryEntity::class],
-    version = 1,
+    entities = [NoteEntity::class, CategoryEntity::class, DayOverrideEntity::class],
+    version = 2,
     exportSchema = true,
+    autoMigrations = [
+        // v1.1: notes.noteDate (calendar day) + day_overrides table. Only adds, never removes data.
+        AutoMigration(from = 1, to = 2),
+    ],
 )
 @TypeConverters(Converters::class)
 abstract class NotebookDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
     abstract fun categoryDao(): CategoryDao
+    abstract fun dayOverrideDao(): DayOverrideDao
 
     companion object {
         const val FILE_NAME = "notebook.db"

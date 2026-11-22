@@ -28,6 +28,10 @@ class NoteRepository(
     fun observeArchivedNotes(sort: SortOrder): Flow<List<Note>> =
         noteDao.observeArchived(sort.name).map { list -> list.map { it.toDomain() } }
 
+    /** Main-screen notes that have a calendar day (v1.1). */
+    fun observeDatedNotes(): Flow<List<Note>> =
+        noteDao.observeDated().map { list -> list.map { it.toDomain() } }
+
     fun observeTrash(): Flow<List<Note>> =
         noteDao.observeTrash().map { list -> list.map { it.toDomain() } }
 
@@ -44,6 +48,7 @@ class NoteRepository(
         content: String,
         color: NoteColor = NoteColor.DEFAULT,
         categoryId: Long? = null,
+        noteDate: Long? = null,
     ): Long {
         val now = clock()
         return noteDao.insert(
@@ -53,6 +58,7 @@ class NoteRepository(
                 content = content,
                 color = color,
                 categoryId = categoryId,
+                noteDate = noteDate,
                 createdAt = now,
                 updatedAt = now,
             ),
@@ -74,6 +80,9 @@ class NoteRepository(
     suspend fun setColor(ids: List<Long>, color: NoteColor) = noteDao.setColor(ids, color.name, clock())
 
     suspend fun setCategory(ids: List<Long>, categoryId: Long?) = noteDao.setCategory(ids, categoryId, clock())
+
+    /** Puts notes on a calendar day (days since 1970-01-01), or takes them off it (null). */
+    suspend fun setDate(ids: List<Long>, epochDay: Long?) = noteDao.setDate(ids, epochDay, clock())
 
     /** Pinning does not change updatedAt (spec). */
     suspend fun setPinned(ids: List<Long>, pinned: Boolean) = noteDao.setPinned(ids, pinned)

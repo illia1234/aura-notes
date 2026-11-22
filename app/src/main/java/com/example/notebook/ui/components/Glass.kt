@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.notebook.ui.theme.AuraColors
+import com.example.notebook.ui.theme.LocalAuraPalette
 
 /*
  * Building blocks of the Aura "soft glass" look (docs/REDESIGN_AURA.md).
@@ -55,23 +56,27 @@ import com.example.notebook.ui.theme.AuraColors
 
 val GlassShape = RoundedCornerShape(24.dp)
 
-/** Glass panel: translucent fill + light rim. Apply after size/padding modifiers of the parent. */
-fun Modifier.glass(shape: Shape = GlassShape, selected: Boolean = false): Modifier = this
-    .clip(shape)
-    .background(Brush.verticalGradient(listOf(AuraColors.GlassTop, AuraColors.GlassBottom)))
-    .border(
-        width = if (selected) 1.5.dp else 1.dp,
-        brush = if (selected) {
-            Brush.linearGradient(listOf(AuraColors.AccentBlue, AuraColors.AccentViolet))
-        } else {
-            Brush.linearGradient(
-                colors = listOf(AuraColors.RimBright, AuraColors.RimDim),
-                start = Offset.Zero,
-                end = Offset.Infinite,
-            )
-        },
-        shape = shape,
-    )
+/** Glass panel: translucent fill + light rim (rim colors follow the display style). */
+@Composable
+fun Modifier.glass(shape: Shape = GlassShape, selected: Boolean = false): Modifier {
+    val palette = LocalAuraPalette.current
+    return this
+        .clip(shape)
+        .background(Brush.verticalGradient(listOf(AuraColors.GlassTop, AuraColors.GlassBottom)))
+        .border(
+            width = if (selected) 1.5.dp else 1.dp,
+            brush = if (selected) {
+                Brush.linearGradient(listOf(AuraColors.AccentBlue, AuraColors.AccentViolet))
+            } else {
+                Brush.linearGradient(
+                    colors = listOf(palette.rimBright, palette.rimDim),
+                    start = Offset.Zero,
+                    end = Offset.Infinite,
+                )
+            },
+            shape = shape,
+        )
+}
 
 /**
  * Soft, springy press feedback (spec: "мягкая, пружинистая анимация"): the element

@@ -12,6 +12,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.notebook.navigation.AuraApp
 import com.example.notebook.ui.LocalAppSettings
 import com.example.notebook.ui.theme.AuraTheme
+import com.example.notebook.ui.theme.LocalAuraPalette
+import com.example.notebook.ui.theme.palette
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -31,7 +33,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by container.settingsRepository.settings.collectAsStateWithLifecycle(initialSettings)
             AuraTheme {
-                CompositionLocalProvider(LocalAppSettings provides settings) {
+                CompositionLocalProvider(
+                    LocalAppSettings provides settings,
+                    LocalAuraPalette provides settings.style.palette(),
+                ) {
                     AuraApp(container)
                 }
             }

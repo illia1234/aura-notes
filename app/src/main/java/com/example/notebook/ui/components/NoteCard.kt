@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,12 +39,13 @@ import com.example.notebook.domain.NoteSearch
 import com.example.notebook.ui.theme.AuraColors
 import com.example.notebook.ui.theme.accent
 import com.example.notebook.ui.theme.glows
+import com.example.notebook.ui.util.formatDay
 import com.example.notebook.ui.util.formatShortDate
 
 /**
  * A note in the list (Aura): a full-width glass card with the glowing color dot on the left,
  * title and one line of text in the middle, the date below, and the tag pill on the right.
- * A favorite (pinned) note shows a small heart. Tapping opens the editor with the
+ * A note with a calendar day shows that day next to the date. Tapping opens the editor with the
  * card-expands transition; a long press starts multi-select.
  */
 @OptIn(ExperimentalFoundationApi::class)
@@ -71,6 +72,7 @@ fun NoteCard(
     val shownBody = if (highlight == null) body else NoteSearch.snippet(body, highlight)
     // Formatting a date is relatively expensive; remember it so scrolling does not redo it.
     val date = remember(note.updatedAt) { formatShortDate(context, note.updatedAt) }
+    val noteDay = remember(note.noteDate) { note.noteDate?.let { formatDay(context, it) } }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -101,14 +103,6 @@ fun NoteCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                if (note.isPinned) {
-                    Icon(
-                        Icons.Rounded.Favorite,
-                        contentDescription = stringResource(R.string.note_is_favorite),
-                        tint = AuraColors.AccentViolet,
-                        modifier = Modifier.padding(start = 6.dp).size(14.dp),
-                    )
-                }
             }
             if (shownBody.isNotEmpty()) {
                 Text(
@@ -119,11 +113,19 @@ fun NoteCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
-                text = date,
-                style = MaterialTheme.typography.labelSmall,
-                color = AuraColors.TextSecondary,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = date, style = MaterialTheme.typography.labelSmall, color = AuraColors.TextSecondary)
+                if (noteDay != null) {
+                    // The calendar day the note belongs to (v1.1).
+                    Icon(
+                        Icons.Outlined.Event,
+                        contentDescription = stringResource(R.string.note_date),
+                        tint = AuraColors.TextSecondary,
+                        modifier = Modifier.padding(start = 10.dp, end = 3.dp).size(12.dp),
+                    )
+                    Text(text = noteDay, style = MaterialTheme.typography.labelSmall, color = AuraColors.TextSecondary)
+                }
+            }
         }
         if (categoryName != null) {
             Spacer(Modifier.width(10.dp))

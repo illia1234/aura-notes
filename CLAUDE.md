@@ -2,7 +2,7 @@
 
 Native Android notes app "Aura" (project folder and package still named Notebook; Kotlin, Jetpack Compose, Material 3, Room, MVVM). Target device: Pixel 8 / 8a.
 
-- Requirements: `docs/PROJECT_INSTRUCTIONS.md`. Behavior spec (Russian): `docs/SPEC.md`. Visual design: `docs/REDESIGN_AURA.md` (dark-only glass style, bottom tabs) — it overrides the look described in SPEC.md.
+- Requirements: `docs/PROJECT_INSTRUCTIONS.md`. Behavior spec (Russian): `docs/SPEC.md`. Visual design: `docs/REDESIGN_AURA.md`. v1.1 changes (calendar instead of favorites, note dates, styles, ru/en): `docs/V1_1_PLAN.md`. Later documents override earlier ones.
 - Work in the 7 stages listed at the end of `docs/SPEC.md`; each stage ends with `./gradlew assembleDebug` and install on the phone.
 - The user is learning Android: explain decisions in Russian, list files before changing them, ask before large architectural changes.
 - adb: `C:/Users/illia/AppData/Local/Android/Sdk/platform-tools/adb.exe`; the phone connects over Wi‑Fi (serial starts with `adb-`), an emulator may also be running — always pass `-s`.

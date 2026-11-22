@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.net.Uri
 import androidx.room.withTransaction
 import com.example.notebook.data.database.CategoryEntity
+import com.example.notebook.data.database.DayOverrideEntity
 import com.example.notebook.data.database.NoteEntity
 import com.example.notebook.data.database.NotebookDatabase
 import com.example.notebook.domain.Category
@@ -30,6 +31,7 @@ class BackupRepository(
 ) {
     private val noteDao = database.noteDao()
     private val categoryDao = database.categoryDao()
+    private val dayOverrideDao = database.dayOverrideDao()
 
     private val json = Json {
         prettyPrint = true
@@ -39,7 +41,9 @@ class BackupRepository(
 
     /** All notes (including archive and trash) and all categories as JSON text. */
     suspend fun exportJson(): String {
-        val (categories, notes) = database.withTransaction { categoryDao.getAll() to noteDao.getAll() }
+        val (categories, notes, overrides) = database.withTransaction {
+            Triple(categoryDao.getAll(), noteDao.getAll(), dayOverrideDao.getAll())
+        }
         val names = categories.associate { it.id to it.name }
         val file = BackupFile(
             formatVersion = FORMAT_VERSION,
@@ -55,10 +59,12 @@ class BackupRepository(
                     isPinned = note.isPinned,
                     isArchived = note.isArchived,
                     deletedAt = note.deletedAt,
+                    noteDate = note.noteDate,
                     createdAt = note.createdAt,
                     updatedAt = note.updatedAt,
                 )
             },
+            dayOverrides = overrides.map { BackupDayOverride(it.epochDay, it.isWorkDay) },
         )
         return json.encodeToString(BackupFile.serializer(), file)
     }
@@ -117,6 +123,7 @@ class BackupRepository(
                     isPinned = note.isPinned && !note.isArchived,
                     isArchived = note.isArchived,
                     deletedAt = note.deletedAt,
+                    noteDate = note.noteDate,
                     createdAt = note.createdAt,
                     updatedAt = note.updatedAt,
                 )
@@ -128,6 +135,8 @@ class BackupRepository(
                     updated++
                 }
             }
+            // Schedule exceptions: the file's value wins for the days it contains; other days are kept.
+            file.dayOverrides.forEach { dayOverrideDao.upsert(DayOverrideEntity(it.epochDay, it.isWorkDay)) }
             ImportResult(added, updated, skipped)
         }
     }
@@ -171,7 +180,8 @@ class BackupRepository(
     }
 
     companion object {
-        const val FORMAT_VERSION = 1
+        /** 2 since v1.1 (note dates, schedule exceptions). Files of format 1 still import. */
+        const val FORMAT_VERSION = 2
 
         /** A backup bigger than this is surely not ours; refuse instead of running out of memory. */
         private const val MAX_FILE_BYTES = 50 * 1024 * 1024

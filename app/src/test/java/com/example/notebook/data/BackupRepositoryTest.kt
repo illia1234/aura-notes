@@ -3,6 +3,7 @@ package com.example.notebook.data
 import com.example.notebook.data.backup.BackupException
 import com.example.notebook.data.backup.BackupRepository
 import com.example.notebook.data.backup.ImportResult
+import com.example.notebook.data.database.DayOverrideEntity
 import com.example.notebook.data.database.NotebookDatabase
 import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
@@ -62,7 +63,7 @@ class BackupRepositoryTest {
         val names = db.categoryDao().getAll().associate { it.id to it.name }
         return db.noteDao().getAll().map {
             listOf(it.uuid, it.title, it.content, it.color, it.categoryId?.let(names::get),
-                it.isPinned, it.isArchived, it.deletedAt, it.createdAt, it.updatedAt)
+                it.isPinned, it.isArchived, it.deletedAt, it.noteDate, it.createdAt, it.updatedAt)
         }.toSet()
     }
 
@@ -173,8 +174,30 @@ class BackupRepositoryTest {
     fun exportContainsFormatVersionAndCategoryNames() = runTest {
         fillSource()
         val json = backup(source).exportJson()
-        assertTrue(json.contains("\"formatVersion\": 1"))
+        assertTrue(json.contains("\"formatVersion\": 2"))
         assertTrue(json.contains("\"category\": \"Работа\""))
+    }
+
+    @Test
+    fun noteDatesAndScheduleExceptionsSurviveExportAndImport() = runTest {
+        val dated = notes(source).createNote("смена", "", noteDate = 20_413L)
+        source.dayOverrideDao().upsert(DayOverrideEntity(20_414L, isWorkDay = false))
+
+        backup(target).importJson(backup(source).exportJson())
+
+        val uuid = source.noteDao().getById(dated)!!.uuid
+        assertEquals(20_413L, target.noteDao().getByUuid(uuid)!!.noteDate)
+        assertEquals(listOf(DayOverrideEntity(20_414L, false)), target.dayOverrideDao().getAll())
+    }
+
+    @Test
+    fun formatOneFileFromVersion10StillImports() = runTest {
+        val result = backup(target).importJson(
+            """{"formatVersion":1,"exportedAt":0,"categories":[{"name":"Работа"}],
+               "notes":[{"uuid":"old-1","title":"из 1.0","category":"Работа","createdAt":1,"updatedAt":2}]}""",
+        )
+        assertEquals(ImportResult(1, 0, 0), result)
+        assertEquals(null, target.noteDao().getByUuid("old-1")!!.noteDate)
     }
 
     private suspend fun assertReason(expected: BackupException.Reason, block: suspend () -> Unit) {

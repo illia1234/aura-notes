@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -42,12 +41,14 @@ import com.example.notebook.ui.components.LocalNavAnimatedScope
 import com.example.notebook.ui.components.LocalSharedTransitionScope
 import com.example.notebook.ui.screens.bin.BinMode
 import com.example.notebook.ui.screens.bin.BinScreen
+import com.example.notebook.ui.screens.calendar.CalendarScreen
 import com.example.notebook.ui.screens.editor.EditorScreen
 import com.example.notebook.ui.screens.labels.LabelsScreen
 import com.example.notebook.ui.screens.notes.NotesScreen
 import com.example.notebook.ui.screens.search.SearchScreen
 import com.example.notebook.ui.screens.settings.SettingsScreen
-import com.example.notebook.ui.theme.AuraColors
+import com.example.notebook.ui.theme.LocalAuraPalette
+import com.example.notebook.ui.theme.auraBackground
 import kotlinx.coroutines.launch
 
 /**
@@ -77,7 +78,8 @@ fun AuraApp(container: AppContainer, navController: NavHostController = remember
         }
     }
 
-    SharedTransitionLayout(Modifier.fillMaxSize().background(AuraColors.Background)) {
+    // The display style (Чёрный, Аврора, Неон…) is painted once here, under every screen.
+    SharedTransitionLayout(Modifier.fillMaxSize().auraBackground(LocalAuraPalette.current)) {
         CompositionLocalProvider(LocalSharedTransitionScope provides this) {
             Box(Modifier.fillMaxSize()) {
                 AuraNavHost(navController, container)
@@ -140,7 +142,6 @@ private fun AuraNavHost(navController: NavHostController, container: AppContaine
     ) {
         screen<HomeRoute> {
             NotesScreen(
-                favoritesOnly = false,
                 onOpenNote = openNote,
                 onCreateNote = newNote,
                 onOpenSearch = { navController.openTab(AuraTab.Search) },
@@ -157,11 +158,10 @@ private fun AuraNavHost(navController: NavHostController, container: AppContaine
             )
         }
         screen<SearchRoute> { SearchScreen(onOpenNote = openNote) }
-        screen<FavoritesRoute> {
-            NotesScreen(
-                favoritesOnly = true,
+        screen<CalendarRoute> {
+            CalendarScreen(
                 onOpenNote = openNote,
-                onCreateNote = newNote,
+                onCreateNote = { day -> navController.navigate(EditorRoute(date = day)) { launchSingleTop = true } },
                 onOpenSearch = { navController.openTab(AuraTab.Search) },
             )
         }

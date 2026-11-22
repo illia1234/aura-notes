@@ -1,6 +1,23 @@
 package com.example.notebook.ui.screens.settings
 
 import android.content.Context
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import com.example.notebook.domain.AuraStyle
+import com.example.notebook.ui.theme.auraBackground
+import com.example.notebook.ui.theme.palette
+import com.example.notebook.ui.util.AppLanguage
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -76,7 +93,39 @@ fun SettingsScreen(
     ) {
         ScreenTitle(stringResource(R.string.tab_settings))
 
-        SectionLabel(stringResource(R.string.sort))
+        // Display style (v1.1): a row of small previews of each background.
+        SectionLabel(stringResource(R.string.settings_style))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
+        ) {
+            AuraStyle.entries.forEach { style ->
+                StyleTile(
+                    style = style,
+                    selected = style == settings.style,
+                    onClick = { viewModel.setStyle(style) },
+                )
+            }
+        }
+
+        // App language (v1.1). Android 13+ only; older versions follow the system language.
+        if (AppLanguage.isSupported) {
+            var language by remember { mutableStateOf(AppLanguage.current(context)) }
+            SectionLabel(stringResource(R.string.settings_language), Modifier.padding(top = 12.dp))
+            GlassGroup {
+                RadioGroup(
+                    options = AppLanguage.entries,
+                    selected = language,
+                    label = { stringResource(it.labelRes()) },
+                    onSelect = {
+                        language = it
+                        AppLanguage.set(context, it) // the screen restarts in the new language
+                    },
+                )
+            }
+        }
+
+        SectionLabel(stringResource(R.string.sort), Modifier.padding(top = 12.dp))
         GlassGroup {
             RadioGroup(
                 options = SortOrder.entries,
@@ -200,4 +249,55 @@ private fun EditorTextSize.labelRes(): Int = when (this) {
     EditorTextSize.SMALL -> R.string.text_size_small
     EditorTextSize.MEDIUM -> R.string.text_size_medium
     EditorTextSize.LARGE -> R.string.text_size_large
+}
+
+/** A small preview of a display style: its background with a mini glass card, and its name. */
+@Composable
+private fun StyleTile(style: AuraStyle, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(18.dp)
+    val palette = style.palette()
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(width = 76.dp, height = 104.dp)
+                .clip(shape)
+                .auraBackground(palette)
+                .border(
+                    width = if (selected) 2.dp else 1.dp,
+                    color = if (selected) AuraColors.TextPrimary else AuraColors.RimBright,
+                    shape = shape,
+                )
+                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        ) {
+            // Mini glass card with the style's rim, to show how cards look on it.
+            Box(
+                Modifier
+                    .size(width = 52.dp, height = 22.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(AuraColors.GlassTop)
+                    .border(1.dp, Brush.linearGradient(listOf(palette.rimBright, palette.rimDim)), RoundedCornerShape(8.dp)),
+            )
+        }
+        Text(
+            text = stringResource(style.labelRes()),
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected) AuraColors.TextPrimary else AuraColors.TextSecondary,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+private fun AuraStyle.labelRes(): Int = when (this) {
+    AuraStyle.BLACK -> R.string.style_black
+    AuraStyle.AURORA -> R.string.style_aurora
+    AuraStyle.NEON -> R.string.style_neon
+    AuraStyle.SUNSET -> R.string.style_sunset
+    AuraStyle.GRAPHITE -> R.string.style_graphite
+}
+
+private fun AppLanguage.labelRes(): Int = when (this) {
+    AppLanguage.SYSTEM -> R.string.language_system
+    AppLanguage.RUSSIAN -> R.string.language_russian
+    AppLanguage.ENGLISH -> R.string.language_english
 }

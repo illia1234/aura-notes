@@ -15,7 +15,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object SearchRoute
 
-@Serializable data object FavoritesRoute
+@Serializable data object CalendarRoute
 
 @Serializable data object SettingsRoute
 
@@ -23,7 +23,12 @@ import kotlinx.serialization.Serializable
  * noteId == null means "create a new note"; [categoryId] then pre-selects its tag
  * (used when creating a note while a tag filter is active).
  */
-@Serializable data class EditorRoute(val noteId: Long? = null, val categoryId: Long? = null)
+@Serializable data class EditorRoute(
+    val noteId: Long? = null,
+    val categoryId: Long? = null,
+    /** Calendar day for a note created from the calendar (days since 1970-01-01). */
+    val date: Long? = null,
+)
 
 @Serializable data object ArchiveRoute
 

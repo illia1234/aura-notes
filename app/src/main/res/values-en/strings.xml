@@ -1,0 +1,192 @@
+<resources>
+    <!-- English translation (v1.1). The default language of the app (values/) is Russian. -->
+
+    <!-- Bottom tab bar -->
+    <string name="tab_home">Home</string>
+    <string name="tab_labels">Tags</string>
+    <string name="tab_search">Search</string>
+    <string name="tab_calendar">Calendar</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Main screen -->
+    <string name="title_notes">Notes</string>
+    <string name="search_hint">Search notes</string>
+    <string name="new_note">New note</string>
+    <string name="notes_empty">No notes yet.\nTap “+” to create one</string>
+    <string name="selection_clear">Clear selection</string>
+
+    <!-- Archive and trash -->
+    <string name="nav_archive">Archive</string>
+    <string name="nav_trash">Trash</string>
+    <string name="labels_storage">Storage</string>
+
+    <!-- Note actions -->
+    <string name="archive">Archive</string>
+    <string name="delete">Delete</string>
+    <string name="color">Color</string>
+    <string name="note_color_title">Note color</string>
+    <string name="undo">Undo</string>
+    <string name="note_trashed">Note moved to trash</string>
+    <string name="note_archived">Note archived</string>
+    <string name="empty_note_discarded">Empty note discarded</string>
+    <string name="note_unarchived">Note restored from archive</string>
+    <string name="note_restored">Note restored</string>
+    <string name="note_deleted_forever">Note deleted forever</string>
+    <string name="unarchive">Unarchive</string>
+    <string name="restore">Restore</string>
+    <string name="delete_forever">Delete forever</string>
+    <string name="delete_forever_title">Delete forever?</string>
+    <string name="trash_banner">Notes in trash are deleted forever after 30 days</string>
+    <string name="trash_empty_action">Empty</string>
+    <string name="trash_is_empty">Trash is empty</string>
+    <string name="archive_is_empty">Archive is empty</string>
+    <string name="trash_read_only">This note is in the trash. Restore it to edit.</string>
+
+    <!-- Tags -->
+    <string name="category">Tag</string>
+    <string name="category_none">No tag</string>
+    <string name="category_new">New tag</string>
+    <string name="category_name">Name</string>
+    <string name="category_create">Create</string>
+    <string name="category_rename">Rename</string>
+    <string name="category_rename_title">Rename tag</string>
+    <string name="category_save">Save</string>
+    <string name="category_error_empty">Enter a name</string>
+    <string name="category_error_too_long">30 characters at most</string>
+    <string name="category_error_duplicate">This tag already exists</string>
+    <string name="category_delete_title">Delete “#%1$s”?</string>
+    <string name="category_delete_no_notes">No notes have this tag.</string>
+    <string name="categories_empty">No tags yet. Create one to group your notes</string>
+    <string name="notes_empty_filter">No notes with this tag</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Calendar -->
+    <string name="calendar_add_shift_note">Add shift note</string>
+    <string name="calendar_previous">Previous month</string>
+    <string name="calendar_next">Next month</string>
+    <string name="calendar_today">Go to today</string>
+    <string name="calendar_no_notes">No notes for this day</string>
+    <string name="calendar_hint_no_schedule">Set up your shift schedule with the calendar icon on the right: work days turn green, days off red</string>
+    <string name="calendar_hint_long_press">Long press a day: shift ↔ day off. Again: back to the schedule</string>
+    <string name="day_type_work">shift</string>
+    <string name="day_type_off">day off</string>
+    <string name="note_date">Date</string>
+    <string name="date_clear">Remove date</string>
+    <string name="ok">OK</string>
+    <string name="schedule_title">Shift schedule</string>
+    <string name="schedule_2_2">2/2</string>
+    <string name="schedule_5_2">5/2 (Mon–Fri)</string>
+    <string name="schedule_1_3">24 h on, 3 days off</string>
+    <string name="schedule_custom">Custom</string>
+    <string name="schedule_work_days">Work days</string>
+    <string name="schedule_off_days">Days off</string>
+    <string name="schedule_start">First work day</string>
+    <string name="schedule_start_hint">The repeating schedule is counted from this day</string>
+    <string name="schedule_reset">Reset schedule</string>
+    <string name="schedule_less">Fewer</string>
+    <string name="schedule_more">More</string>
+
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+    <string name="more_options">More options</string>
+    <string name="date_yesterday">yesterday</string>
+
+    <!-- Editor -->
+    <string name="editor_title_hint">Title</string>
+    <string name="editor_content_hint">Note</string>
+    <string name="editor_edited">Edited %1$s</string>
+    <string name="copy">Copy</string>
+    <string name="copied">Copied</string>
+    <string name="share">Share</string>
+    <string name="info">Info</string>
+    <string name="info_created">Created: %1$s</string>
+    <string name="info_updated">Edited: %1$s</string>
+
+    <!-- Search and sorting -->
+    <string name="search_clear">Clear</string>
+    <string name="search_nothing_found">Nothing found</string>
+    <string name="filter_all">All</string>
+    <string name="sort">Sort</string>
+    <string name="sort_updated_newest">Edited: newest first</string>
+    <string name="sort_updated_oldest">Edited: oldest first</string>
+    <string name="sort_created_newest">Created: newest first</string>
+    <string name="sort_created_oldest">Created: oldest first</string>
+
+    <!-- Settings -->
+    <string name="settings_style">Appearance</string>
+    <string name="style_black">Black</string>
+    <string name="style_aurora">Aurora</string>
+    <string name="style_neon">Neon</string>
+    <string name="style_sunset">Sunset</string>
+    <string name="style_graphite">Graphite</string>
+    <string name="settings_language">Language</string>
+    <string name="language_system">System default</string>
+    <string name="language_russian">Русский</string>
+    <string name="language_english">English</string>
+    <string name="settings_text_size">Editor text size</string>
+    <string name="text_size_small">Small</string>
+    <string name="text_size_medium">Medium</string>
+    <string name="text_size_large">Large</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version_value">Version %1$s</string>
+    <string name="backup_section">Backup</string>
+    <string name="backup_export">Export notes</string>
+    <string name="backup_export_hint">Save all notes and tags to a JSON file</string>
+    <string name="backup_import">Import notes</string>
+    <string name="backup_import_hint">Add notes from a file. Existing notes are kept</string>
+    <string name="backup_export_done">Notes exported: %1$d</string>
+    <string name="backup_import_done">Added %1$d, updated %2$d, skipped %3$d</string>
+    <string name="backup_error_not_backup">This file does not look like an Aura backup. Nothing was changed</string>
+    <string name="backup_error_newer">This file was made by a newer version of Aura. Please update the app</string>
+    <string name="backup_error_io">Could not read or save the file</string>
+
+    <!-- Note colors -->
+    <string name="color_default">No color</string>
+    <string name="color_coral">Coral</string>
+    <string name="color_peach">Peach</string>
+    <string name="color_sand">Lemon</string>
+    <string name="color_mint">Mint</string>
+    <string name="color_sage">Lime</string>
+    <string name="color_fog">Sky</string>
+    <string name="color_storm">Blue</string>
+    <string name="color_dusk">Lavender</string>
+
+    <!-- Counts: English needs one / other -->
+    <plurals name="notes_trashed">
+        <item quantity="one">%d note moved to trash</item>
+        <item quantity="other">%d notes moved to trash</item>
+    </plurals>
+    <plurals name="notes_archived">
+        <item quantity="one">%d note archived</item>
+        <item quantity="other">%d notes archived</item>
+    </plurals>
+    <plurals name="category_delete_notes">
+        <item quantity="one">%d note will lose this tag. The note itself is not deleted.</item>
+        <item quantity="other">%d notes will lose this tag. The notes themselves are not deleted.</item>
+    </plurals>
+    <plurals name="category_note_count">
+        <item quantity="one">%d note</item>
+        <item quantity="other">%d notes</item>
+    </plurals>
+    <plurals name="notes_unarchived">
+        <item quantity="one">%d note restored from archive</item>
+        <item quantity="other">%d notes restored from archive</item>
+    </plurals>
+    <plurals name="notes_restored">
+        <item quantity="one">%d note restored</item>
+        <item quantity="other">%d notes restored</item>
+    </plurals>
+    <plurals name="notes_deleted_forever">
+        <item quantity="one">%d note deleted forever</item>
+        <item quantity="other">%d notes deleted forever</item>
+    </plurals>
+    <plurals name="confirm_delete_forever">
+        <item quantity="one">%d note will be deleted and cannot be restored.</item>
+        <item quantity="other">%d notes will be deleted and cannot be restored.</item>
+    </plurals>
+    <plurals name="confirm_empty_trash">
+        <item quantity="one">The trash will be emptied: %d note will be deleted and cannot be restored.</item>
+        <item quantity="other">The trash will be emptied: %d notes will be deleted and cannot be restored.</item>
+    </plurals>
+</resources>
