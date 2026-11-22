@@ -100,7 +100,7 @@ class CalendarViewModel(
 
     fun nextMonth() = month.update { it.plusMonths(1) }
 
-    /** Tap: select the day; a day of the neighbouring month also switches the month. */
+    /** Select the day (its notes are shown below); a day of the neighbouring month also switches the month. */
     fun select(epochDay: Long) {
         selected.value = epochDay
         month.value = YearMonth.from(LocalDate.ofEpochDay(epochDay))
@@ -108,7 +108,7 @@ class CalendarViewModel(
 
     fun goToToday() = select(today.toEpochDay())
 
-    /** Long press: shift ↔ day off over the schedule; again = back to the schedule. */
+    /** Tap on a day: shift ↔ day off over the schedule (see toggledOverride for the full cycle). */
     fun toggleDay(epochDay: Long) {
         appScope.launch {
             val schedule = settings.schedule.first()

@@ -60,10 +60,10 @@ fun dayType(epochDay: Long, schedule: ShiftSchedule?, overrides: Map<Long, Boole
 }
 
 /**
- * Long press on a day.
+ * Tap on a day (since v1.1.1; was a long press).
  *
  * With a schedule: the day flips to the opposite of the schedule (shift ↔ day off);
- * the next long press returns it to the schedule.
+ * the next tap returns it to the schedule.
  *
  * Without a schedule every type must be reachable by hand:
  * gray → green (shift) → red (day off) → gray.

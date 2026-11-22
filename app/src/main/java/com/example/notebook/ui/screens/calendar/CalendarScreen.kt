@@ -245,8 +245,12 @@ private fun MonthCard(
                 week.forEach { cell ->
                     DayCircle(
                         cell = cell,
-                        onClick = { onSelect(cell.epochDay) },
-                        onLongClick = { onToggle(cell.epochDay) },
+                        // Tap: change the day (shift / day off) and select it; long press: only select it.
+                        onClick = {
+                            onSelect(cell.epochDay)
+                            onToggle(cell.epochDay)
+                        },
+                        onLongClick = { onSelect(cell.epochDay) },
                         modifier = Modifier.weight(1f),
                     )
                 }
