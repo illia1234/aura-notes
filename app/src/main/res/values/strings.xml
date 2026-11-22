@@ -66,8 +66,8 @@
     <string name="calendar_next">Следующий месяц</string>
     <string name="calendar_today">К сегодняшнему дню</string>
     <string name="calendar_no_notes">На этот день заметок нет</string>
-    <string name="calendar_hint_no_schedule">Настройте график смен значком календаря справа — рабочие дни станут зелёными, выходные красными</string>
-    <string name="calendar_hint_long_press">Долгое нажатие на день: смена ↔ выходной. Ещё раз — как в графике</string>
+    <string name="calendar_hint_no_schedule">Настройте график смен значком календаря справа — рабочие дни станут зелёными, выходные красными. Или отмечайте дни сами долгим нажатием: зелёный → красный → без отметки</string>
+    <string name="calendar_hint_long_press">Долгое нажатие на день меняет смену на выходной и обратно. Ещё раз — как в графике</string>
     <string name="day_type_work">смена</string>
     <string name="day_type_off">выходной</string>
     <string name="note_date">Дата</string>

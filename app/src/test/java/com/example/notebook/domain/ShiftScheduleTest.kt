@@ -70,7 +70,21 @@ class ShiftScheduleTest {
         assertFalse(toggledOverride(start, s, emptyMap())!!) // work day → day off
         assertTrue(toggledOverride(start + 2, s, emptyMap())!!) // day off → shift
         assertNull(toggledOverride(start, s, mapOf(start to false))) // back to the schedule
-        assertTrue(toggledOverride(start, null, emptyMap())!!) // no schedule → shift
+        assertTrue(toggledOverride(start, null, emptyMap())!!) // no schedule: gray → shift
+    }
+
+    @Test
+    fun withoutScheduleLongPressCyclesGrayGreenRedGray() {
+        var overrides = emptyMap<Long, Boolean>()
+        val seen = mutableListOf(dayType(start, null, overrides))
+        repeat(3) {
+            overrides = when (val next = toggledOverride(start, null, overrides)) {
+                null -> overrides - start
+                else -> overrides + (start to next)
+            }
+            seen += dayType(start, null, overrides)
+        }
+        assertEquals(listOf(DayType.NONE, DayType.WORK, DayType.OFF, DayType.NONE), seen)
     }
 
     @Test
