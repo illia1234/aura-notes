@@ -66,10 +66,22 @@
     <string name="calendar_next">Следующий месяц</string>
     <string name="calendar_today">К сегодняшнему дню</string>
     <string name="calendar_no_notes">На этот день заметок нет</string>
-    <string name="calendar_hint_no_schedule">Нажмите на день, чтобы отметить его: зелёный (смена) → красный (выходной) → без отметки. Или настройте график значком календаря справа. Долгое нажатие — только выбрать день</string>
-    <string name="calendar_hint_long_press">Нажатие на день меняет смену на выходной и обратно, ещё раз — как в графике. Долгое нажатие — только выбрать день</string>
+    <string name="calendar_hint_work">Нажмите на день, в который работали, — он станет красным со сменой 7:30–21:30. Зажмите день, чтобы вписать своё время. Всё собирается в заметку «Mondieu» с меткой #work</string>
     <string name="day_type_work">смена</string>
     <string name="day_type_off">выходной</string>
+    <string name="day_type_planned">по графику смена</string>
+    <string name="schedule_rotation">2-3-2-2-3-2 (14 дней)</string>
+    <string name="shift_title">Смена · %1$s</string>
+    <string name="shift_start">Начало</string>
+    <string name="shift_end">Конец</string>
+    <string name="shift_overnight">Смена заканчивается на следующий день</string>
+    <string name="shift_remove">Убрать смену</string>
+    <string name="work_hours">%1$s ч</string>
+    <string name="work_total">Итого: %1$s · %2$s · %3$s</string>
+    <string name="work_note_footer">Заметка обновляется автоматически из календаря — правки вручную будут заменены.</string>
+    <string name="settings_work">Работа</string>
+    <string name="settings_rate">Ставка, € в час</string>
+    <string name="settings_default_shift">Обычная смена</string>
     <string name="note_date">Дата</string>
     <string name="date_clear">Убрать дату</string>
     <string name="ok">ОК</string>
@@ -153,6 +165,12 @@
     <string name="color_dusk">Лавандовый</string>
 
     <!-- Counts: Russian needs one / few / many forms -->
+    <plurals name="work_shifts">
+        <item quantity="one">%d смена</item>
+        <item quantity="few">%d смены</item>
+        <item quantity="many">%d смен</item>
+        <item quantity="other">%d смены</item>
+    </plurals>
     <plurals name="notes_trashed">
         <item quantity="one">%d заметка в корзине</item>
         <item quantity="few">%d заметки в корзине</item>

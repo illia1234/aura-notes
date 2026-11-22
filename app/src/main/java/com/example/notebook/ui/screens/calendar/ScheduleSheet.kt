@@ -57,7 +57,7 @@ fun ScheduleSheet(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    var pattern by rememberSaveable { mutableStateOf(current?.pattern ?: SchedulePattern.TWO_TWO) }
+    var pattern by rememberSaveable { mutableStateOf(current?.pattern ?: SchedulePattern.ROTATION_2322) }
     var work by rememberSaveable { mutableIntStateOf(current?.workDays ?: SchedulePattern.CUSTOM.defaultWork) }
     var off by rememberSaveable { mutableIntStateOf(current?.offDays ?: SchedulePattern.CUSTOM.defaultOff) }
     var start by rememberSaveable { mutableLongStateOf(current?.startEpochDay ?: LocalDate.now().toEpochDay()) }
@@ -160,6 +160,7 @@ private fun Stepper(label: String, value: Int, onChange: (Int) -> Unit) {
 }
 
 private fun SchedulePattern.labelRes(): Int = when (this) {
+    SchedulePattern.ROTATION_2322 -> R.string.schedule_rotation
     SchedulePattern.TWO_TWO -> R.string.schedule_2_2
     SchedulePattern.FIVE_TWO -> R.string.schedule_5_2
     SchedulePattern.ONE_THREE -> R.string.schedule_1_3

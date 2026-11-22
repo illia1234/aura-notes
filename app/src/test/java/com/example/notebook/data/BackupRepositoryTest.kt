@@ -5,6 +5,7 @@ import com.example.notebook.data.backup.BackupRepository
 import com.example.notebook.data.backup.ImportResult
 import com.example.notebook.data.database.DayOverrideEntity
 import com.example.notebook.data.database.NotebookDatabase
+import com.example.notebook.data.database.WorkShiftEntity
 import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
 import com.example.notebook.domain.CategoryResult
@@ -174,7 +175,7 @@ class BackupRepositoryTest {
     fun exportContainsFormatVersionAndCategoryNames() = runTest {
         fillSource()
         val json = backup(source).exportJson()
-        assertTrue(json.contains("\"formatVersion\": 2"))
+        assertTrue(json.contains("\"formatVersion\": 3"))
         assertTrue(json.contains("\"category\": \"Работа\""))
     }
 
@@ -188,6 +189,13 @@ class BackupRepositoryTest {
         val uuid = source.noteDao().getById(dated)!!.uuid
         assertEquals(20_413L, target.noteDao().getByUuid(uuid)!!.noteDate)
         assertEquals(listOf(DayOverrideEntity(20_414L, false)), target.dayOverrideDao().getAll())
+    }
+
+    @Test
+    fun workShiftsSurviveExportAndImport() = runTest {
+        source.workShiftDao().upsert(WorkShiftEntity(20_413L, 450, 1290))
+        backup(target).importJson(backup(source).exportJson())
+        assertEquals(listOf(WorkShiftEntity(20_413L, 450, 1290)), target.workShiftDao().getAll())
     }
 
     @Test

@@ -1,6 +1,16 @@
 package com.example.notebook.ui.screens.settings
 
 import android.content.Context
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import com.example.notebook.domain.formatTime
+import com.example.notebook.ui.screens.calendar.TimeDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -69,7 +79,7 @@ import com.example.notebook.ui.theme.AuraColors
 fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel {
         val c = appContainer()
-        SettingsViewModel(c.settingsRepository, c.backupRepository, c.userMessenger, c.applicationScope)
+        SettingsViewModel(c.settingsRepository, c.backupRepository, c.userMessenger, c.applicationScope, c.workRepository)
     },
 ) {
     val settings = LocalAppSettings.current
@@ -124,6 +134,10 @@ fun SettingsScreen(
                 )
             }
         }
+
+        // Work log (v1.2): pay per hour and the time a tap puts on a day.
+        SectionLabel(stringResource(R.string.settings_work), Modifier.padding(top = 12.dp))
+        GlassGroup { WorkSettings(settings.hourlyRateCents, settings.defaultShiftStart, settings.defaultShiftEnd, viewModel) }
 
         SectionLabel(stringResource(R.string.sort), Modifier.padding(top = 12.dp))
         GlassGroup {
@@ -300,4 +314,54 @@ private fun AppLanguage.labelRes(): Int = when (this) {
     AppLanguage.SYSTEM -> R.string.language_system
     AppLanguage.RUSSIAN -> R.string.language_russian
     AppLanguage.ENGLISH -> R.string.language_english
+}
+
+@Composable
+private fun WorkSettings(rateCents: Int, shiftStart: Int, shiftEnd: Int, viewModel: SettingsViewModel) {
+    var rateText by remember(rateCents) {
+        mutableStateOf(if (rateCents % 100 == 0) (rateCents / 100).toString() else "%d,%02d".format(rateCents / 100, rateCents % 100))
+    }
+    var rateError by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<Boolean?>(null) } // true = start, false = end
+    val focusManager = LocalFocusManager.current
+
+    Column(Modifier.padding(horizontal = 18.dp, vertical = 10.dp)) {
+        OutlinedTextField(
+            value = rateText,
+            onValueChange = {
+                rateText = it
+                rateError = false
+            },
+            label = { Text(stringResource(R.string.settings_rate)) },
+            singleLine = true,
+            isError = rateError,
+            suffix = { Text("€") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = {
+                rateError = !viewModel.setHourlyRate(rateText)
+                if (!rateError) focusManager.clearFocus()
+            }),
+            modifier = Modifier
+                .fillMaxWidth()
+                // Saved when the field loses focus too, not only on "Done".
+                .onFocusChanged { if (!it.isFocused && rateText.isNotBlank()) rateError = !viewModel.setHourlyRate(rateText) },
+        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+            Text(stringResource(R.string.settings_default_shift), style = MaterialTheme.typography.bodyLarge, color = AuraColors.TextPrimary, modifier = Modifier.weight(1f))
+            TextButton(onClick = { editing = true }) { Text(formatTime(shiftStart)) }
+            Text("–", color = AuraColors.TextSecondary)
+            TextButton(onClick = { editing = false }) { Text(formatTime(shiftEnd)) }
+        }
+    }
+
+    editing?.let { isStart ->
+        TimeDialog(
+            initialMinute = if (isStart) shiftStart else shiftEnd,
+            onPick = { minute ->
+                if (isStart) viewModel.setDefaultShift(minute, shiftEnd) else viewModel.setDefaultShift(shiftStart, minute)
+                editing = null
+            },
+            onDismiss = { editing = null },
+        )
+    }
 }

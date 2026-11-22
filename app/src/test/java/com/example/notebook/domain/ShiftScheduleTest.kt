@@ -2,8 +2,6 @@ package com.example.notebook.domain
 
 import com.example.notebook.ui.screens.calendar.CalendarViewModel
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
@@ -51,40 +49,12 @@ class ShiftScheduleTest {
     }
 
     @Test
-    fun manualOverrideWinsOverSchedule() {
-        val s = ShiftSchedule(SchedulePattern.TWO_TWO, startEpochDay = start)
-        assertEquals(DayType.WORK, dayType(start, s, emptyMap()))
-        assertEquals(DayType.OFF, dayType(start, s, mapOf(start to false)))
-        assertEquals(DayType.WORK, dayType(start + 2, s, mapOf(start + 2 to true)))
-    }
-
-    @Test
-    fun withoutScheduleDaysAreNeutralUnlessMarked() {
-        assertEquals(DayType.NONE, dayType(start, null, emptyMap()))
-        assertEquals(DayType.WORK, dayType(start, null, mapOf(start to true)))
-    }
-
-    @Test
-    fun longPressFlipsTheScheduledTypeAndSecondPressReturnsToSchedule() {
-        val s = ShiftSchedule(SchedulePattern.TWO_TWO, startEpochDay = start)
-        assertFalse(toggledOverride(start, s, emptyMap())!!) // work day → day off
-        assertTrue(toggledOverride(start + 2, s, emptyMap())!!) // day off → shift
-        assertNull(toggledOverride(start, s, mapOf(start to false))) // back to the schedule
-        assertTrue(toggledOverride(start, null, emptyMap())!!) // no schedule: gray → shift
-    }
-
-    @Test
-    fun withoutScheduleLongPressCyclesGrayGreenRedGray() {
-        var overrides = emptyMap<Long, Boolean>()
-        val seen = mutableListOf(dayType(start, null, overrides))
-        repeat(3) {
-            overrides = when (val next = toggledOverride(start, null, overrides)) {
-                null -> overrides - start
-                else -> overrides + (start to next)
-            }
-            seen += dayType(start, null, overrides)
-        }
-        assertEquals(listOf(DayType.NONE, DayType.WORK, DayType.OFF, DayType.NONE), seen)
+    fun rotation2322MatchesTheUsersDecember() {
+        // The user's December 2026 shifts, cycle starting on 2 December.
+        val s = ShiftSchedule(SchedulePattern.ROTATION_2322, startEpochDay = day(2026, 12, 2))
+        val expected = setOf(2, 3, 7, 8, 11, 12, 13, 16, 17, 21, 22, 25, 26, 27, 30, 31)
+        val predicted = (1..31).filter { s.isWorkDay(day(2026, 12, it)) }.toSet()
+        assertEquals(expected, predicted)
     }
 
     @Test

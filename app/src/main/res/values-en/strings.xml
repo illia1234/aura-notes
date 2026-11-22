@@ -66,10 +66,22 @@
     <string name="calendar_next">Next month</string>
     <string name="calendar_today">Go to today</string>
     <string name="calendar_no_notes">No notes for this day</string>
-    <string name="calendar_hint_no_schedule">Tap a day to mark it: green (shift) → red (day off) → unmarked. Or set up a schedule with the calendar icon on the right. Long press only selects the day</string>
-    <string name="calendar_hint_long_press">Tap a day to switch between shift and day off; again: back to the schedule. Long press only selects the day</string>
+    <string name="calendar_hint_work">Tap a day you worked: it turns red with a 7:30–21:30 shift. Long press a day to enter your own hours. Everything goes into the “Mondieu” note tagged #work</string>
     <string name="day_type_work">shift</string>
     <string name="day_type_off">day off</string>
+    <string name="day_type_planned">shift expected</string>
+    <string name="schedule_rotation">2-3-2-2-3-2 (14 days)</string>
+    <string name="shift_title">Shift · %1$s</string>
+    <string name="shift_start">Start</string>
+    <string name="shift_end">End</string>
+    <string name="shift_overnight">The shift ends the next day</string>
+    <string name="shift_remove">Remove shift</string>
+    <string name="work_hours">%1$s h</string>
+    <string name="work_total">Total: %1$s · %2$s · %3$s</string>
+    <string name="work_note_footer">This note is updated automatically from the calendar — manual edits will be replaced.</string>
+    <string name="settings_work">Work</string>
+    <string name="settings_rate">Rate, € per hour</string>
+    <string name="settings_default_shift">Usual shift</string>
     <string name="note_date">Date</string>
     <string name="date_clear">Remove date</string>
     <string name="ok">OK</string>
@@ -153,6 +165,10 @@
     <string name="color_dusk">Lavender</string>
 
     <!-- Counts: English needs one / other -->
+    <plurals name="work_shifts">
+        <item quantity="one">%d shift</item>
+        <item quantity="other">%d shifts</item>
+    </plurals>
     <plurals name="notes_trashed">
         <item quantity="one">%d note moved to trash</item>
         <item quantity="other">%d notes moved to trash</item>

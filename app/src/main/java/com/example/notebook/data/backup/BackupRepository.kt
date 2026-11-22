@@ -5,6 +5,11 @@ import android.net.Uri
 import androidx.room.withTransaction
 import com.example.notebook.data.database.CategoryEntity
 import com.example.notebook.data.database.DayOverrideEntity
+import com.example.notebook.data.database.WorkShiftEntity
+import com.example.notebook.data.repository.SettingsRepository
+import com.example.notebook.domain.SchedulePattern
+import com.example.notebook.domain.ShiftSchedule
+import kotlinx.coroutines.flow.first
 import com.example.notebook.data.database.NoteEntity
 import com.example.notebook.data.database.NotebookDatabase
 import com.example.notebook.domain.Category
@@ -27,11 +32,14 @@ import java.util.Locale
 class BackupRepository(
     private val database: NotebookDatabase,
     private val contentResolver: ContentResolver?,
+    /** Where the shift schedule lives (DataStore); null in tests that do not need it. */
+    private val settings: SettingsRepository? = null,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val noteDao = database.noteDao()
     private val categoryDao = database.categoryDao()
     private val dayOverrideDao = database.dayOverrideDao()
+    private val workShiftDao = database.workShiftDao()
 
     private val json = Json {
         prettyPrint = true
@@ -44,6 +52,8 @@ class BackupRepository(
         val (categories, notes, overrides) = database.withTransaction {
             Triple(categoryDao.getAll(), noteDao.getAll(), dayOverrideDao.getAll())
         }
+        val shifts = workShiftDao.getAll()
+        val schedule = settings?.schedule?.first()
         val names = categories.associate { it.id to it.name }
         val file = BackupFile(
             formatVersion = FORMAT_VERSION,
@@ -65,6 +75,8 @@ class BackupRepository(
                 )
             },
             dayOverrides = overrides.map { BackupDayOverride(it.epochDay, it.isWorkDay) },
+            workShifts = shifts.map { BackupWorkShift(it.epochDay, it.startMinute, it.endMinute) },
+            schedule = schedule?.let { BackupSchedule(it.pattern.name, it.workDays, it.offDays, it.startEpochDay) },
         )
         return json.encodeToString(BackupFile.serializer(), file)
     }
@@ -88,7 +100,7 @@ class BackupRepository(
 
     suspend fun importJson(text: String): ImportResult {
         val file = parse(text)
-        return database.withTransaction {
+        val result = database.withTransaction {
             // Existing categories by name, ignoring case (also for Cyrillic), like the app's own rule.
             val categoryIds = categoryDao.getAll().associateTo(HashMap()) { it.name.key() to it.id }
 
@@ -137,8 +149,17 @@ class BackupRepository(
             }
             // Schedule exceptions: the file's value wins for the days it contains; other days are kept.
             file.dayOverrides.forEach { dayOverrideDao.upsert(DayOverrideEntity(it.epochDay, it.isWorkDay)) }
+            // Worked days: the file's hours win for the days it contains; other days are kept.
+            file.workShifts.forEach { workShiftDao.upsert(WorkShiftEntity(it.epochDay, it.startMinute, it.endMinute)) }
             ImportResult(added, updated, skipped)
         }
+        // The schedule is a setting (DataStore), applied only after the data import succeeded.
+        file.schedule?.let { s ->
+            val pattern = SchedulePattern.entries.firstOrNull { it.name == s.pattern } ?: return@let
+            runCatching { ShiftSchedule(pattern, s.workDays, s.offDays, s.startEpochDay) }
+                .onSuccess { settings?.setSchedule(it) }
+        }
+        return result
     }
 
     /** Writes a backup to a file the user picked in the system "save" dialog. Returns the note count. */
@@ -180,8 +201,8 @@ class BackupRepository(
     }
 
     companion object {
-        /** 2 since v1.1 (note dates, schedule exceptions). Files of format 1 still import. */
-        const val FORMAT_VERSION = 2
+        /** 3 since v1.2 (work shifts, schedule); 2 = v1.1; 1 = v1.0. Older files still import. */
+        const val FORMAT_VERSION = 3
 
         /** A backup bigger than this is surely not ours; refuse instead of running out of memory. */
         private const val MAX_FILE_BYTES = 50 * 1024 * 1024

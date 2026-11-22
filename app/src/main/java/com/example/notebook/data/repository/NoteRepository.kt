@@ -39,6 +39,24 @@ class NoteRepository(
 
     suspend fun getNote(id: Long): Note? = noteDao.getById(id)?.toDomain()
 
+    suspend fun getByUuid(uuid: String): Note? = noteDao.getByUuid(uuid)?.toDomain()
+
+    /**
+     * A note written by the app itself (the work log): created if missing, otherwise its
+     * title, text and tag are replaced. updatedAt changes only when something differs.
+     */
+    suspend fun upsertGenerated(uuid: String, title: String, content: String, categoryId: Long?) {
+        val existing = noteDao.getByUuid(uuid)
+        val now = clock()
+        if (existing == null) {
+            noteDao.insert(
+                NoteEntity(uuid = uuid, title = title, content = content, categoryId = categoryId, createdAt = now, updatedAt = now),
+            )
+        } else if (existing.title != title || existing.content != content || existing.categoryId != categoryId) {
+            noteDao.update(existing.copy(title = title, content = content, categoryId = categoryId, updatedAt = now))
+        }
+    }
+
     /**
      * Inserts a new note and returns its id. The editor calls this on the first typed
      * character, not when the FAB is pressed (spec), so empty notes never reach the database.

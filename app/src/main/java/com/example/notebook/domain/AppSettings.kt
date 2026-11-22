@@ -18,6 +18,11 @@ data class AppSettings(
     val sortOrder: SortOrder = SortOrder.UPDATED_NEWEST_FIRST,
     val editorTextSize: EditorTextSize = EditorTextSize.MEDIUM,
     val style: AuraStyle = AuraStyle.BLACK,
-    /** Shift schedule for the calendar; null = not set up. */
+    /** Shift schedule used to predict future shifts; null = not set up. */
     val schedule: ShiftSchedule? = null,
+    /** Pay per hour in euro cents (v1.2). */
+    val hourlyRateCents: Int = 700,
+    /** Time a tap puts on a day, minutes after midnight (v1.2): 7:30–21:30. */
+    val defaultShiftStart: Int = 7 * 60 + 30,
+    val defaultShiftEnd: Int = 21 * 60 + 30,
 )

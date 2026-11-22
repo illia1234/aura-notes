@@ -60,6 +60,14 @@ class CategoryRepository(
         }
     }
 
+    /** Id of the category with this name (ignoring case), created if it does not exist yet. */
+    suspend fun findOrCreate(rawName: String): Long = database.withTransaction {
+        val name = rawName.trim().take(Category.MAX_NAME_LENGTH)
+        val key = name.lowercase(Locale.ROOT)
+        categoryDao.getAll().firstOrNull { it.name.lowercase(Locale.ROOT) == key }?.id
+            ?: categoryDao.insert(CategoryEntity(name = name, createdAt = clock()))
+    }
+
     /** How many notes (including archive and trash) lose this category if it is deleted. */
     suspend fun countNotesInCategory(id: Long): Int = categoryDao.countAllNotes(id)
 

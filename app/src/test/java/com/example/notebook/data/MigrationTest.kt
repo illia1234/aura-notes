@@ -63,6 +63,26 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun version2To3AddsEmptyWorkShiftsAndKeepsNotes() {
+        helper.createDatabase(DB, 2).use { db ->
+            db.execSQL(
+                """INSERT INTO notes (id, uuid, title, content, color, categoryId, isPinned, isArchived, deletedAt, noteDate, createdAt, updatedAt)
+                   VALUES (7, 'u-7', 'смена', '', 'DEFAULT', NULL, 0, 0, NULL, 20413, 1, 2)""",
+            )
+        }
+        helper.runMigrationsAndValidate(DB, 3, true).use { db ->
+            db.query("SELECT noteDate FROM notes WHERE id = 7").use { c ->
+                c.moveToFirst()
+                assertEquals(20413L, c.getLong(0))
+            }
+            db.query("SELECT COUNT(*) FROM work_shifts").use { c ->
+                c.moveToFirst()
+                assertEquals(0, c.getInt(0))
+            }
+        }
+    }
+
     // Full path instead of a bare name: on Windows Room compares the requested path with the
     // configured name and a bare name does not match (test-only workaround).
     private val DB: String = ApplicationProvider.getApplicationContext<Context>()

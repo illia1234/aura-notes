@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -49,7 +50,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.notebook.R
-import com.example.notebook.domain.DayType
+import com.example.notebook.domain.MonthTotal
+import com.example.notebook.domain.formatEuro
+import com.example.notebook.domain.formatHours
 import com.example.notebook.ui.appContainer
 import com.example.notebook.ui.components.AuraTopBar
 import com.example.notebook.ui.components.GlowFab
@@ -69,9 +72,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
-/** Day colors (docs/V1_1_PLAN.md): muted green shift, muted red day off, neutral gray. */
-private val WorkDayColor = Color(0xFF2F6B4F)
-private val OffDayColor = Color(0xFF8A2E3A)
+/** Day colors (docs/V1_2_PLAN.md): red = worked, gray = not worked, red ring = expected shift. */
+private val WorkedColor = Color(0xFF8A2E3A)
+private val PlannedRing = Color(0xFFD9566A)
 private val NoneDayColor = Color(0xFF2A2A30)
 private val TodayRing = Color(0xFF4FE3F0)
 
@@ -86,12 +89,14 @@ fun CalendarScreen(
     onOpenSearch: () -> Unit,
     viewModel: CalendarViewModel = viewModel {
         val c = appContainer()
-        CalendarViewModel(c.noteRepository, c.categoryRepository, c.settingsRepository, c.scheduleRepository, c.applicationScope)
+        CalendarViewModel(c.noteRepository, c.categoryRepository, c.settingsRepository, c.workRepository, c.applicationScope)
     },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showScheduleSheet by rememberSaveable { mutableStateOf(false) }
+    // Day whose shift hours are being edited (long press), or null.
+    var editingDay by rememberSaveable { mutableStateOf<Long?>(null) }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -109,14 +114,16 @@ fun CalendarScreen(
                         onNext = viewModel::nextMonth,
                         onToday = viewModel::goToToday,
                         onSelect = viewModel::select,
-                        onToggle = viewModel::toggleDay,
+                        onTap = viewModel::toggleWorked,
+                        onLongPress = { day -> editingDay = day },
                         onSchedule = { showScheduleSheet = true },
                     )
                 }
+                item(key = "total") { MonthSummary(state.monthTotal) }
                 item(key = "hint") {
                     Text(
                         text = stringResource(
-                            if (state.schedule == null) R.string.calendar_hint_no_schedule else R.string.calendar_hint_long_press,
+                            R.string.calendar_hint_work,
                         ),
                         style = MaterialTheme.typography.labelMedium,
                         color = AuraColors.TextSecondary,
@@ -177,6 +184,24 @@ fun CalendarScreen(
         }
     }
 
+    editingDay?.let { day ->
+        ShiftSheet(
+            epochDay = day,
+            current = state.days.firstOrNull { it.epochDay == day }?.shift ?: state.selectedShift?.takeIf { it.epochDay == day },
+            defaultStart = state.defaultShiftStart,
+            defaultEnd = state.defaultShiftEnd,
+            onSave = { shift ->
+                viewModel.saveShift(shift)
+                editingDay = null
+            },
+            onRemove = {
+                viewModel.removeShift(day)
+                editingDay = null
+            },
+            onDismiss = { editingDay = null },
+        )
+    }
+
     if (showScheduleSheet) {
         ScheduleSheet(
             current = state.schedule,
@@ -196,7 +221,8 @@ private fun MonthCard(
     onNext: () -> Unit,
     onToday: () -> Unit,
     onSelect: (Long) -> Unit,
-    onToggle: (Long) -> Unit,
+    onTap: (Long) -> Unit,
+    onLongPress: (Long) -> Unit,
     onSchedule: () -> Unit,
 ) {
     val locale = LocalContext.current.resources.configuration.locales[0] ?: Locale.getDefault()
@@ -245,12 +271,15 @@ private fun MonthCard(
                 week.forEach { cell ->
                     DayCircle(
                         cell = cell,
-                        // Tap: change the day (shift / day off) and select it; long press: only select it.
+                        // Tap: worked / not worked (and select the day). Long press: edit the hours.
                         onClick = {
                             onSelect(cell.epochDay)
-                            onToggle(cell.epochDay)
+                            onTap(cell.epochDay)
                         },
-                        onLongClick = { onSelect(cell.epochDay) },
+                        onLongClick = {
+                            onSelect(cell.epochDay)
+                            onLongPress(cell.epochDay)
+                        },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -263,15 +292,11 @@ private fun MonthCard(
 @Composable
 private fun DayCircle(cell: DayCell, onClick: () -> Unit, onLongClick: () -> Unit, modifier: Modifier = Modifier) {
     val haptics = LocalHapticFeedback.current
-    val fill = when (cell.type) {
-        DayType.WORK -> WorkDayColor
-        DayType.OFF -> OffDayColor
-        DayType.NONE -> NoneDayColor
-    }
-    val typeLabel = when (cell.type) {
-        DayType.WORK -> stringResource(R.string.day_type_work)
-        DayType.OFF -> stringResource(R.string.day_type_off)
-        DayType.NONE -> ""
+    val fill = if (cell.shift != null) WorkedColor else NoneDayColor
+    val typeLabel = when {
+        cell.shift != null -> stringResource(R.string.day_type_work)
+        cell.isPlanned -> stringResource(R.string.day_type_planned)
+        else -> ""
     }
     Box(
         contentAlignment = Alignment.Center,
@@ -286,6 +311,7 @@ private fun DayCircle(cell: DayCell, onClick: () -> Unit, onLongClick: () -> Uni
                 when {
                     cell.isToday -> Modifier.border(2.dp, TodayRing, CircleShape)
                     cell.isSelected -> Modifier.border(1.5.dp, AuraColors.TextPrimary, CircleShape)
+                    cell.isPlanned -> Modifier.border(1.5.dp, PlannedRing, CircleShape)
                     else -> Modifier
                 },
             )
@@ -323,5 +349,29 @@ private fun DayCircle(cell: DayCell, onClick: () -> Unit, onLongClick: () -> Uni
                     .border(1.dp, AuraColors.TextPrimary, CircleShape),
             )
         }
+    }
+}
+
+/** "Ноябрь: 15 смен · 212 ч · 1 484 €" under the calendar card. */
+@Composable
+private fun MonthSummary(total: MonthTotal) {
+    val res = LocalContext.current.resources
+    val locale = res.configuration.locales[0] ?: Locale.getDefault()
+    val symbols = java.text.DecimalFormatSymbols.getInstance(locale)
+    val group = if (symbols.groupingSeparator.isWhitespace()) ' ' else symbols.groupingSeparator
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().glass(CircleShape).padding(horizontal = 18.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = stringResource(
+                R.string.work_total,
+                pluralStringResource(R.plurals.work_shifts, total.days, total.days),
+                stringResource(R.string.work_hours, formatHours(total.minutes, symbols.decimalSeparator)),
+                formatEuro(total.payCents, symbols.decimalSeparator, group),
+            ),
+            style = MaterialTheme.typography.titleSmall,
+            color = AuraColors.TextPrimary,
+        )
     }
 }

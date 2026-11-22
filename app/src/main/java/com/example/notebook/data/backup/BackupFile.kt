@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 /**
  * JSON backup format (docs/SPEC.md, "Экспорт и импорт"):
  * `{"formatVersion": 2, "exportedAt": …, "categories": […], "notes": […], "dayOverrides": […]}`.
- * Format 1 (v1.0) had no note dates and no dayOverrides; such files still import.
+ * Format 3 (v1.2) adds "workShifts" and "schedule". Files of formats 1 and 2 still import.
  *
  * A note refers to its category by *name*, not by database id, because ids differ
  * between devices. Dates are UTC milliseconds. Fields with defaults may be missing
@@ -17,8 +17,12 @@ data class BackupFile(
     val exportedAt: Long,
     val categories: List<BackupCategory> = emptyList(),
     val notes: List<BackupNote> = emptyList(),
-    /** Manual shift-schedule exceptions (format 2, v1.1). */
+    /** Manual shift-schedule exceptions (format 2, v1.1; no longer used by the app). */
     val dayOverrides: List<BackupDayOverride> = emptyList(),
+    /** Worked days with hours (format 3, v1.2). */
+    val workShifts: List<BackupWorkShift> = emptyList(),
+    /** Shift schedule used to predict future shifts (format 3), or null. */
+    val schedule: BackupSchedule? = null,
 )
 
 @Serializable
@@ -49,6 +53,14 @@ data class BackupNote(
 /** One schedule exception: that day is a shift (true) or a day off (false). */
 @Serializable
 data class BackupDayOverride(val epochDay: Long, val isWorkDay: Boolean)
+
+/** A worked day: day (days since 1970-01-01) and shift time in minutes after midnight. */
+@Serializable
+data class BackupWorkShift(val epochDay: Long, val startMinute: Int, val endMinute: Int)
+
+/** Shift schedule; pattern is a SchedulePattern name. */
+@Serializable
+data class BackupSchedule(val pattern: String, val workDays: Int, val offDays: Int, val startEpochDay: Long)
 
 /** Summary shown after import: "Добавлено 12, обновлено 3, пропущено 40". */
 data class ImportResult(val added: Int, val updated: Int, val skipped: Int)

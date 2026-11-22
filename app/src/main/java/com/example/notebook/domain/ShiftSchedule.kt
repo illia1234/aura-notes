@@ -3,8 +3,14 @@ package com.example.notebook.domain
 import java.time.DayOfWeek
 import java.time.LocalDate
 
-/** Ready-made shift patterns (docs/V1_1_PLAN.md) plus a custom "N on / M off". */
+/**
+ * Shift patterns used to *predict* future shifts in the calendar (v1.2: predicted days get a
+ * thin red ring; only days the user marks count as worked).
+ */
 enum class SchedulePattern(val defaultWork: Int, val defaultOff: Int) {
+    /** 14-day rotation: 2 on, 3 off, 2 on, 2 off, 3 on, 2 off (the user's own schedule). */
+    ROTATION_2322(2, 2),
+
     /** 2 days on, 2 days off, repeating from the start date. */
     TWO_TWO(2, 2),
 
@@ -17,9 +23,6 @@ enum class SchedulePattern(val defaultWork: Int, val defaultOff: Int) {
     /** Any N days on / M days off, repeating from the start date. */
     CUSTOM(3, 3),
 }
-
-/** What a calendar day is, after applying the schedule and manual exceptions. */
-enum class DayType { WORK, OFF, NONE }
 
 /**
  * A shift schedule. Days are counted as "epoch days" (days since 1970-01-01, see
@@ -40,41 +43,20 @@ data class ShiftSchedule(
     /** Whether the schedule makes this day a working day. Works for days before the start too. */
     fun isWorkDay(epochDay: Long): Boolean = when (pattern) {
         SchedulePattern.FIVE_TWO -> LocalDate.ofEpochDay(epochDay).dayOfWeek !in WEEKEND
+        SchedulePattern.ROTATION_2322 ->
+            ROTATION[Math.floorMod(epochDay - startEpochDay, ROTATION.size.toLong()).toInt()]
         else -> Math.floorMod(epochDay - startEpochDay, (workDays + offDays).toLong()) < workDays
     }
 
     companion object {
         const val MAX_DAYS = 14
         private val WEEKEND = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
-    }
-}
 
-/**
- * The type of a day: a manual exception wins; otherwise the schedule decides;
- * without a schedule the day is neutral.
- */
-fun dayType(epochDay: Long, schedule: ShiftSchedule?, overrides: Map<Long, Boolean>): DayType {
-    val manual = overrides[epochDay]
-    val isWork = manual ?: schedule?.isWorkDay(epochDay) ?: return DayType.NONE
-    return if (isWork) DayType.WORK else DayType.OFF
-}
-
-/**
- * Tap on a day (since v1.1.1; was a long press).
- *
- * With a schedule: the day flips to the opposite of the schedule (shift ↔ day off);
- * the next tap returns it to the schedule.
- *
- * Without a schedule every type must be reachable by hand:
- * gray → green (shift) → red (day off) → gray.
- *
- * @return the new exception, or null to remove it.
- */
-fun toggledOverride(epochDay: Long, schedule: ShiftSchedule?, overrides: Map<Long, Boolean>): Boolean? {
-    val current = overrides[epochDay]
-    return when {
-        current == null -> !(schedule?.isWorkDay(epochDay) ?: false)
-        schedule == null && current -> false // green → red
-        else -> null // back to the schedule (or to gray)
+        /** W W - - - W W - - W W W - - */
+        private val ROTATION = booleanArrayOf(
+            true, true, false, false, false,
+            true, true, false, false,
+            true, true, true, false, false,
+        )
     }
 }

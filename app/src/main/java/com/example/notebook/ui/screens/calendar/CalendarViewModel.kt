@@ -4,19 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
-import com.example.notebook.data.repository.ScheduleRepository
 import com.example.notebook.data.repository.SettingsRepository
-import com.example.notebook.domain.DayType
+import com.example.notebook.data.repository.WorkRepository
+import com.example.notebook.domain.MonthTotal
 import com.example.notebook.domain.ShiftSchedule
-import com.example.notebook.domain.dayType
-import com.example.notebook.domain.toggledOverride
+import com.example.notebook.domain.WorkShift
+import com.example.notebook.domain.monthTotal
 import com.example.notebook.ui.screens.notes.NoteItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -29,7 +28,10 @@ data class DayCell(
     val epochDay: Long,
     val dayOfMonth: Int,
     val inMonth: Boolean,
-    val type: DayType,
+    /** Worked shift of this day (red), or null. */
+    val shift: WorkShift?,
+    /** Not worked yet, but the schedule expects a shift (today or later, after the last entered shift): thin red ring. */
+    val isPlanned: Boolean,
     val hasNotes: Boolean,
     val isToday: Boolean,
     val isSelected: Boolean,
@@ -40,21 +42,26 @@ data class CalendarUiState(
     /** Always 6 weeks × 7 days, Monday first. */
     val days: List<DayCell> = emptyList(),
     val selectedDay: Long,
+    val selectedShift: WorkShift? = null,
     val selectedNotes: List<NoteItem> = emptyList(),
+    val monthTotal: MonthTotal = MonthTotal(month, 0, 0, 0),
     val schedule: ShiftSchedule? = null,
+    val defaultShiftStart: Int = 7 * 60 + 30,
+    val defaultShiftEnd: Int = 21 * 60 + 30,
 )
 
 /**
- * "Календарь" tab (v1.1): a month grid colored by the shift schedule (green = shift,
- * red = day off), manual exceptions on long press, and the notes of the selected day.
+ * "Календарь" tab (v1.2): all days gray; a tap marks a worked day (red, usual hours);
+ * long press edits the hours. Totals of the shown month below the grid. The schedule only
+ * predicts future shifts (ring). Every change also rewrites the "Mondieu" note.
  *
  * @param today injectable so tests do not depend on the real date.
  */
 class CalendarViewModel(
-    private val notes: NoteRepository,
+    notes: NoteRepository,
     categories: CategoryRepository,
     private val settings: SettingsRepository,
-    private val scheduleRepository: ScheduleRepository,
+    private val work: WorkRepository,
     private val appScope: CoroutineScope,
     private val today: LocalDate = LocalDate.now(),
 ) : ViewModel() {
@@ -64,31 +71,43 @@ class CalendarViewModel(
 
     val state: StateFlow<CalendarUiState> = combine(
         combine(month, selected, ::Pair),
-        settings.schedule,
-        scheduleRepository.overrides,
+        settings.settings,
+        work.shifts,
         notes.observeDatedNotes(),
         categories.observeCategories(),
-    ) { (shownMonth, selectedDay), schedule, overrides, dated, cats ->
+    ) { (shownMonth, selectedDay), appSettings, shifts, dated, cats ->
         val names = cats.associate { it.id to it.name }
+        val byDay = shifts.associateBy { it.epochDay }
         val daysWithNotes = dated.mapNotNullTo(HashSet()) { it.noteDate }
+        val todayDay = today.toEpochDay()
+        // Days you already planned by hand (swaps included) win over the cycle:
+        // the prediction starts after the last entered shift.
+        val predictFrom = maxOf(todayDay, (shifts.maxOfOrNull { it.epochDay } ?: Long.MIN_VALUE) + 1)
+        val schedule = appSettings.schedule
         CalendarUiState(
             month = shownMonth,
             days = monthGrid(shownMonth).map { date ->
                 val day = date.toEpochDay()
+                val shift = byDay[day]
                 DayCell(
                     epochDay = day,
                     dayOfMonth = date.dayOfMonth,
                     inMonth = YearMonth.from(date) == shownMonth,
-                    type = dayType(day, schedule, overrides),
+                    shift = shift,
+                    isPlanned = shift == null && day >= predictFrom && schedule?.isWorkDay(day) == true,
                     hasNotes = day in daysWithNotes,
                     isToday = date == today,
                     isSelected = day == selectedDay,
                 )
             },
             selectedDay = selectedDay,
+            selectedShift = byDay[selectedDay],
             selectedNotes = dated.filter { it.noteDate == selectedDay }
                 .map { NoteItem(it, it.categoryId?.let(names::get)) },
+            monthTotal = monthTotal(shownMonth, shifts, appSettings.hourlyRateCents),
             schedule = schedule,
+            defaultShiftStart = appSettings.defaultShiftStart,
+            defaultShiftEnd = appSettings.defaultShiftEnd,
         )
     }.stateIn(
         viewModelScope,
@@ -108,16 +127,17 @@ class CalendarViewModel(
 
     fun goToToday() = select(today.toEpochDay())
 
-    /** Tap on a day: shift ↔ day off over the schedule (see toggledOverride for the full cycle). */
-    fun toggleDay(epochDay: Long) {
-        appScope.launch {
-            val schedule = settings.schedule.first()
-            val overrides = scheduleRepository.overrides.first()
-            when (val newValue = toggledOverride(epochDay, schedule, overrides)) {
-                null -> scheduleRepository.clearOverride(epochDay)
-                else -> scheduleRepository.setOverride(epochDay, newValue)
-            }
-        }
+    /** Tap: worked ↔ not worked (a new worked day gets the usual hours). */
+    fun toggleWorked(epochDay: Long) {
+        appScope.launch { work.toggle(epochDay) }
+    }
+
+    fun saveShift(shift: WorkShift) {
+        appScope.launch { work.saveShift(shift) }
+    }
+
+    fun removeShift(epochDay: Long) {
+        appScope.launch { work.removeShift(epochDay) }
     }
 
     fun saveSchedule(schedule: ShiftSchedule?) {

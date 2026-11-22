@@ -38,6 +38,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
             editorTextSize = prefs[EDITOR_TEXT_SIZE].toEnum(defaults.editorTextSize),
             style = prefs[STYLE].toEnum(defaults.style),
             schedule = prefs.schedule(),
+            hourlyRateCents = prefs[HOURLY_RATE] ?: defaults.hourlyRateCents,
+            defaultShiftStart = prefs[SHIFT_START] ?: defaults.defaultShiftStart,
+            defaultShiftEnd = prefs[SHIFT_END] ?: defaults.defaultShiftEnd,
         )
     }.distinctUntilChanged()
 
@@ -50,6 +53,13 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setEditorTextSize(size: EditorTextSize) = dataStore.edit { it[EDITOR_TEXT_SIZE] = size.name }
 
     suspend fun setStyle(style: AuraStyle) = dataStore.edit { it[STYLE] = style.name }
+
+    suspend fun setHourlyRateCents(cents: Int) = dataStore.edit { it[HOURLY_RATE] = cents.coerceIn(0, 100_000) }
+
+    suspend fun setDefaultShift(startMinute: Int, endMinute: Int) = dataStore.edit {
+        it[SHIFT_START] = startMinute
+        it[SHIFT_END] = endMinute
+    }
 
     /** Saves the shift schedule, or removes it (null). */
     suspend fun setSchedule(schedule: ShiftSchedule?) = dataStore.edit { prefs ->
@@ -87,6 +97,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val SCHEDULE_WORK = intPreferencesKey("schedule_work_days")
         val SCHEDULE_OFF = intPreferencesKey("schedule_off_days")
         val SCHEDULE_START = longPreferencesKey("schedule_start_epoch_day")
+        val HOURLY_RATE = intPreferencesKey("hourly_rate_cents")
+        val SHIFT_START = intPreferencesKey("default_shift_start")
+        val SHIFT_END = intPreferencesKey("default_shift_end")
     }
 }
 

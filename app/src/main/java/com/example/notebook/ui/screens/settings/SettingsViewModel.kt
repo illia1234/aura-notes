@@ -10,6 +10,7 @@ import com.example.notebook.R
 import com.example.notebook.data.backup.BackupException
 import com.example.notebook.data.backup.BackupRepository
 import com.example.notebook.data.repository.SettingsRepository
+import com.example.notebook.data.repository.WorkRepository
 import com.example.notebook.domain.AuraStyle
 import com.example.notebook.domain.EditorTextSize
 import com.example.notebook.domain.SortOrder
@@ -30,11 +31,26 @@ class SettingsViewModel(
     private val backup: BackupRepository,
     private val messenger: UserMessenger,
     private val appScope: CoroutineScope,
+    private val work: WorkRepository,
 ) : ViewModel() {
 
     fun setSortOrder(order: SortOrder) = save { settings.setSortOrder(order) }
     fun setEditorTextSize(size: EditorTextSize) = save { settings.setEditorTextSize(size) }
     fun setStyle(style: AuraStyle) = save { settings.setStyle(style) }
+
+    /** Rate typed by the user, e.g. "7" or "7,50". Returns false if it is not a valid amount. */
+    fun setHourlyRate(text: String): Boolean {
+        val euros = text.trim().replace(',', '.').toBigDecimalOrNull() ?: return false
+        if (euros.signum() < 0 || euros > java.math.BigDecimal(1000)) return false
+        val cents = euros.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).toInt()
+        appScope.launch {
+            settings.setHourlyRateCents(cents)
+            work.refreshNote() // the note shows money, so rewrite it with the new rate
+        }
+        return true
+    }
+
+    fun setDefaultShift(startMinute: Int, endMinute: Int) = save { settings.setDefaultShift(startMinute, endMinute) }
 
     private fun save(block: suspend () -> Unit) {
         viewModelScope.launch { block() }
@@ -56,16 +72,17 @@ class SettingsViewModel(
 
     fun import(uri: Uri) = runBackup {
         val r = backup.importFrom(uri)
+        work.refreshNote() // imported shifts appear in the "Mondieu" note
         UserMessage(text = { it.getString(R.string.backup_import_done, r.added, r.updated, r.skipped) })
     }
 
     /** Runs in the app scope so leaving the screen does not cut an import in half. */
-    private fun runBackup(work: suspend () -> UserMessage) {
+    private fun runBackup(job: suspend () -> UserMessage) {
         if (isBusy) return
         isBusy = true
         appScope.launch {
             val message = try {
-                work()
+                job()
             } catch (e: BackupException) {
                 val res = when (e.reason) {
                     BackupException.Reason.NOT_A_BACKUP -> R.string.backup_error_not_backup

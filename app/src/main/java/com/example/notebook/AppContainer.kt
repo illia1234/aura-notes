@@ -5,7 +5,8 @@ import com.example.notebook.data.backup.BackupRepository
 import com.example.notebook.data.database.NotebookDatabase
 import com.example.notebook.data.repository.CategoryRepository
 import com.example.notebook.data.repository.NoteRepository
-import com.example.notebook.data.repository.ScheduleRepository
+import com.example.notebook.data.repository.WorkRepository
+import com.example.notebook.ui.util.workLogLabels
 import com.example.notebook.data.repository.SettingsRepository
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
@@ -22,6 +23,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
  */
 class AppContainer(context: Context) {
 
+    private val appContext: Context = context.applicationContext
+
     /**
      * Work that must finish even if the screen that started it closes (the final
      * autosave when leaving the editor, undo actions). Runs on the main thread;
@@ -35,14 +38,19 @@ class AppContainer(context: Context) {
 
     val categoryRepository: CategoryRepository by lazy { CategoryRepository(database) }
 
-    val scheduleRepository: ScheduleRepository by lazy { ScheduleRepository(database.dayOverrideDao()) }
+    /** Worked days and the "Mondieu" note (v1.2). The note is written in the current app language. */
+    val workRepository: WorkRepository by lazy {
+        WorkRepository(database.workShiftDao(), noteRepository, categoryRepository, settingsRepository) {
+            workLogLabels(appContext)
+        }
+    }
 
     val userMessenger = UserMessenger()
 
     /** Tag filter of the home tab. Shared so the "Метки" tab can open home already filtered. */
     val homeCategoryFilter = MutableStateFlow<Long?>(null)
 
-    val backupRepository: BackupRepository by lazy { BackupRepository(database, context.contentResolver) }
+    val backupRepository: BackupRepository by lazy { BackupRepository(database, context.contentResolver, settingsRepository) }
 
     /** One DataStore per file for the whole app (DataStore requires a single instance). */
     val settingsRepository: SettingsRepository by lazy {
